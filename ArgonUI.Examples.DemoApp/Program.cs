@@ -1,4 +1,5 @@
 ﻿using ArgonUI;
+using ArgonUI.UIElements;
 using ArgonUI.Backends.OpenGL;
 
 namespace ArgonUI.Examples.DemoApp;
@@ -10,8 +11,17 @@ public class Program
         Console.WriteLine("Welcome to ArgonUI!");
         
         ArgonManager argon = new();
-        argon.CreateOpenGLWindow();
+        var wnd = argon.CreateOpenGLWindow();
+        var rect = new Rectangle();
+        wnd.RootElement.AddChild(rect);
 
-        Console.ReadLine();
+        rect.Width = 100;
+        rect.Height = 100;
+        rect.OnMouseDown += () =>
+        {
+            Console.WriteLine("Rectangle clicked!");
+        };
+
+        wnd.UIThread.Join();
     }
 }

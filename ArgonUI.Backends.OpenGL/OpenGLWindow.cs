@@ -1,35 +1,89 @@
-﻿using Silk.NET.Input;
+﻿using ArgonUI.Input;
+using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Threading;
+using MouseButton = ArgonUI.Input.MouseButton;
 
 namespace ArgonUI.Backends.OpenGL;
 
-public class OpenGLWindow : IUIWindow, IDisposable
+public class OpenGLWindow : UIWindow
 {
-    private readonly IWindow nativeWnd;
+    private IWindow? nativeWnd;
+    private OpenGLDrawContext? drawContext;
+    private readonly Thread uiThread;
     private GL? gl;
     private IInputContext? inputContext;
     private IKeyboard? mainKeyboard;
     private IMouse? mainMouse;
+    private Vector2 lastScrollPos;
 
-    public string Title { get => nativeWnd.Title; set => nativeWnd.Title = value; }
+    public override string Title 
+    { 
+        get => nativeWnd?.Title ?? string.Empty; 
+        set 
+        { 
+            if (nativeWnd != null) 
+                nativeWnd.Title = value; 
+        } 
+    }
 
-    public IDrawContext DrawContext => throw new NotImplementedException();
+    public override IDrawContext DrawContext => drawContext!;
 
-    public VectorInt2 Size { get => nativeWnd.Size.ToVectorInt2(); set => nativeWnd.Size = value.ToVector2D(); }
-    public VectorInt2 Position { get => nativeWnd.Position.ToVectorInt2(); set => nativeWnd.Position = value.ToVector2D(); }
+    public override VectorInt2 Size
+    {
+        get 
+        {
+            if (nativeWnd == null)
+                return VectorInt2.Zero;
+            return nativeWnd.Size.ToVectorInt2(); 
+        }
+        set
+        {
+            if (nativeWnd != null)
+                nativeWnd.Size = value.ToVector2D();
+        }
+    }
+    public override VectorInt2 Position
+    {
+        get 
+        {
+            if (nativeWnd == null)
+                return VectorInt2.Zero;
+            return nativeWnd.Position.ToVectorInt2();
+        }
+        set
+        {
+            if (nativeWnd != null)
+                nativeWnd.Position = value.ToVector2D();
+        }
+    }
 
-    public event Action? OnLoaded;
-    public event Action? OnClosing;
-    public event Action? OnResize;
-    public event Action<float>? OnRender;
-    public event Action<IEnumerable<string>>? OnFileDrop;
+    public override Thread UIThread => uiThread;
 
-    public OpenGLWindow(string title = "ArgonUI Window")
+    public override event Action? OnLoaded;
+    public override event Action? OnClosing;
+    public override event Action? OnResize;
+    public override event Action<float>? OnRender;
+    public override event Action<IEnumerable<string>>? OnFileDrop;
+
+    public OpenGLWindow(ArgonManager argon, string title = "ArgonUI Window") : base(argon)
+    {
+        uiThread = new(() =>
+        {
+            CreateWindow(title);
+            //nativeWnd?.MakeCurrent();
+            nativeWnd?.Run();
+        });
+        uiThread.Start();
+    }
+
+    private void CreateWindow(string title)
     {
         var wndOptions = new WindowOptions(ViewOptions.Default);
         wndOptions.Samples = 4;
@@ -63,35 +117,72 @@ public class OpenGLWindow : IUIWindow, IDisposable
             inputContext = nativeWnd.CreateInput();
             mainKeyboard = inputContext.Keyboards.Count > 0 ? inputContext.Keyboards[0] : null;
             mainMouse = inputContext.Mice.Count > 0 ? inputContext.Mice[0] : null;
-        };
 
-        nativeWnd.Run();
+            drawContext = new(gl);
+
+            MapInput();
+        };
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
+        base.Dispose();
         gl?.Dispose();
         inputContext?.Dispose();
-        nativeWnd.Dispose();
+        nativeWnd?.Dispose();
     }
 
-    public void Show()
+    public override void Show()
     {
-        nativeWnd.Focus();
+        nativeWnd?.Focus();
     }
 
-    public void Minimize()
+    public override void Minimize()
     {
-        nativeWnd.WindowState = WindowState.Minimized;
+        if (nativeWnd != null)
+            nativeWnd.WindowState = WindowState.Minimized;
     }
 
-    public void Maximize()
+    public override void Maximize()
     {
-        nativeWnd.WindowState = WindowState.Maximized;
+        if (nativeWnd != null)
+            nativeWnd.WindowState = WindowState.Maximized;
     }
 
-    public void Close()
+    public override void Close()
     {
-        nativeWnd.Close();
+        nativeWnd?.Close();
+    }
+
+    protected override void RenderFrame()
+    {
+        nativeWnd?.DoRender();
+    }
+
+    protected override void SetMousePos(VectorInt2 mousePos)
+    {
+        if (mainMouse == null)
+            return;
+
+        mainMouse.Position = new(mousePos.x, mousePos.y);
+    }
+
+    private void MapInput()
+    {
+        if (mainKeyboard == null || mainMouse == null)
+            return;
+
+        mainKeyboard.KeyDown += (keyboard, key, ind) => OnKeyDown(this, (KeyCode)key);
+        mainKeyboard.KeyUp += (keyboard, key, ind) => OnKeyUp(this, (KeyCode)key);
+        mainMouse.MouseDown += (mouse, button) => OnMouseDown(this, (MouseButton)button);
+        mainMouse.MouseUp += (mouse, button) => OnMouseUp(this, (MouseButton)button);
+        mainMouse.MouseMove += (mouse, pos) => OnMouseMove(this, new((int)pos.X, (int)pos.Y));
+        mainMouse.Scroll += (mouse, pos) =>
+        {
+            var posVec = new Vector2(pos.X, pos.Y);
+            var delta = posVec - lastScrollPos;
+            OnMouseWheel(this, delta);
+            lastScrollPos = posVec;
+        };
     }
 }

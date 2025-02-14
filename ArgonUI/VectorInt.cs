@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Numerics;
 
 namespace ArgonUI;
 
@@ -13,6 +14,9 @@ public struct VectorInt2 : IEquatable<VectorInt2>, IFormattable
         this.x = x;
         this.y = y;
     }
+
+    public static readonly VectorInt2 Zero = new();
+    public static readonly VectorInt2 One = new(1, 1);
 
     public readonly bool Equals(VectorInt2 other) => other.x == x && other.y == y;
 
@@ -51,6 +55,8 @@ public struct VectorInt3 : IEquatable<VectorInt3>, IFormattable
         this.y = y;
         this.z = z;
     }
+
+    public static readonly VectorInt3 Zero = new();
 
     public readonly bool Equals(VectorInt3 other) => other.x == x && other.y == y && other.z == z;
 

@@ -2,8 +2,10 @@
 using System.Numerics;
 using System;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
+using ArgonUI.Input;
 
-namespace ArgonUI;
+namespace ArgonUI.UIElements;
 
 /// <summary>
 /// Represents the base class for all renderable UI elements in ArgonUI.
@@ -20,48 +22,122 @@ public abstract class UIElement : ReactiveObject
     public bool Focusable { get => focusable; set => UpdateProperty(ref focusable, value); }
     //public Style style;
     //public KeyBindingCollection keybinds;
+    /// <summary>
+    /// Gets the parent UIElement.
+    /// </summary>
+    public UIElement? Parent { get; internal set; }
 
     /// <summary>
     /// The absolute width of this element. Set to 0 to use automatic sizing.
     /// </summary>
-    public int Width { get => width; set => UpdateProperty(ref width, value); }
+    public int Width
+    {
+        get => width; set
+        {
+            UpdateProperty(ref width, value);
+            Dirty(DirtyFlags.Layout);
+        }
+    }
     /// <summary>
     /// The absolute height of this element. Set to 0 to use automatic sizing.
     /// </summary>
-    public int Height { get => height; set => UpdateProperty(ref height, value); }
+    public int Height
+    {
+        get => height; set
+        {
+            UpdateProperty(ref height, value);
+            Dirty(DirtyFlags.Layout);
+        }
+    }
     //public Vector2 Pivot { get => pivot; set => UpdateProperty(ref pivot, value); }
     /// <summary>
     /// How this element should be aligned vertically relative to it's parent.
     /// </summary>
-    public Alignment VerticalAlignment { get => verticalAlignment; set => UpdateProperty(ref verticalAlignment, value); }
+    public Alignment VerticalAlignment
+    {
+        get => verticalAlignment; set
+        {
+            UpdateProperty(ref verticalAlignment, value);
+            Dirty(DirtyFlags.Layout);
+        }
+    }
     /// <summary>
     /// How this element should be aligned horizontally relative to it's parent.
     /// </summary>
-    public Alignment HorizontalAlignment { get => horizontalAlignment; set => UpdateProperty(ref horizontalAlignment, value); }
+    public Alignment HorizontalAlignment
+    {
+        get => horizontalAlignment; set
+        {
+            UpdateProperty(ref horizontalAlignment, value);
+            Dirty(DirtyFlags.Layout);
+        }
+    }
     /// <summary>
     /// How much space (in pixels) to leave around each edge of the element relative to the parent. Specified as a vector of (Top, Right, Bottom, Left).
     /// </summary>
-    public Vector4 Margin { get => margin; set => UpdateProperty(ref margin, value); }
+    public Vector4 Margin
+    {
+        get => margin; set
+        {
+            UpdateProperty(ref margin, value);
+            Dirty(DirtyFlags.Layout);
+        }
+    }
     /// <summary>
     /// Controls which elements are shown on top of each other. Higher z-indexes will be shown on top.
     /// </summary>
-    public int ZIndex { get => zIndex; set => UpdateProperty(ref zIndex, value); }
+    public int ZIndex
+    {
+        get => zIndex; set
+        {
+            UpdateProperty(ref zIndex, value);
+            Dirty(DirtyFlags.Layout);
+        }
+    }
     /// <summary>
     /// The smallest width to shrink this element down to when using automatic sizing.
     /// </summary>
-    public int MinWidth { get => minWidth; set => UpdateProperty(ref minWidth, value); }
+    public int MinWidth
+    {
+        get => minWidth; set
+        {
+            UpdateProperty(ref minWidth, value);
+            Dirty(DirtyFlags.Layout);
+        }
+    }
     /// <summary>
     /// The smallest height to shrink this element down to when using automatic sizing.
     /// </summary>
-    public int MinHeight { get => minHeight; set => UpdateProperty(ref minHeight, value); }
+    public int MinHeight
+    {
+        get => minHeight; set
+        {
+            UpdateProperty(ref minHeight, value);
+            Dirty(DirtyFlags.Layout);
+        }
+    }
     /// <summary>
     /// The largest width to expand this element up to when using automatic sizing.
     /// </summary>
-    public int MaxWidth { get => maxWidth; set =>  UpdateProperty(ref maxWidth, value); }
+    public int MaxWidth
+    {
+        get => maxWidth; set
+        {
+            UpdateProperty(ref maxWidth, value);
+            Dirty(DirtyFlags.Layout);
+        }
+    }
     /// <summary>
     /// The largest height to expand this element up to when using automatic sizing.
     /// </summary>
-    public int MaxHeight { get => maxHeight; set => UpdateProperty(ref maxHeight, value); }
+    public int MaxHeight
+    {
+        get => maxHeight; set
+        {
+            UpdateProperty(ref maxHeight, value);
+            Dirty(DirtyFlags.Layout);
+        }
+    }
 
     /// <summary>
     /// The rendered width of the element after it was last drawn. (Read-only)
@@ -82,7 +158,7 @@ public abstract class UIElement : ReactiveObject
     /// <summary>
     /// 
     /// </summary>
-    public bool IsDirty { get => isDirty; protected internal set => isDirty = value; }
+    public DirtyFlags DirtyFlags { get => dirtyFlag; protected internal set => dirtyFlag = value; }
     /// <summary>
     /// Gets the width of the element when using automatic sizing.
     /// </summary>
@@ -115,7 +191,7 @@ public abstract class UIElement : ReactiveObject
     private float renderedHeight;
     private Bounds2D renderedBounds; // Relative to parent
     private Bounds2D renderedBoundsAbsolute;
-    private bool isDirty;
+    private DirtyFlags dirtyFlag = DirtyFlags.Layout | DirtyFlags.Content;
 
     // Events
     public event Action? OnMouseDown;
@@ -144,9 +220,25 @@ public abstract class UIElement : ReactiveObject
     /// <summary>
     /// Marks this element as dirty, forcing the UI engine to redraw this element and it's children when it's next dispatched.
     /// </summary>
-    public void Dirty()
+    public virtual void Dirty(DirtyFlags flags)
     {
-        UpdateProperty(ref isDirty, true, nameof(IsDirty));
+        UpdateProperty(ref dirtyFlag, dirtyFlag | flags, nameof(DirtyFlags));
+
+        // Propagate dirty flags up
+        if ((flags & DirtyFlags.Layout) != 0) 
+            Parent?.Dirty(DirtyFlags.ChildLayout);
+
+        if ((flags & DirtyFlags.Content) != 0)
+            Parent?.Dirty(DirtyFlags.ChildContent);
+    }
+
+    /// <summary>
+    /// Clears the given dirty flags from the UI element.
+    /// </summary>
+    /// <param name="flags"></param>
+    public virtual void ClearDirtyFlag(DirtyFlags flags)
+    {
+        dirtyFlag &= ~flags;
     }
 
     // Internal
@@ -228,12 +320,51 @@ public abstract class UIElement : ReactiveObject
     /// <summary>
     /// Uses the draw context provided to draw this element to the screen using the provided bounds.
     /// </summary>
-    /// <remarks>
-    /// This method should set <see cref="isDirty"/> to <see langword="false"/> when complete.
-    /// </remarks>
-    /// <param name="bounds"></param>
-    /// <param name="context"></param>
-    protected abstract void Draw(Bounds2D bounds, IDrawContext context);
+    /// <param name="bounds">The bounds (in window-space) of this element.</param>
+    /// <param name="commands">The drawing command list to populate.</param>
+    internal protected abstract void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands);
+
+    /// <summary>
+    /// Updates the layout of this element given it's parent.
+    /// </summary>
+    /// <returns>The computed window-space bounds of this element.</returns>
+    internal protected virtual Bounds2D Layout()
+    {
+        if (Parent is not UIElement parent)
+            return Bounds2D.Zero;
+
+        var parentBounds = parent.renderedBounds;
+        var bounds = ComputeBounds(parentBounds);
+        RenderedBoundsAbsolute = bounds;
+        RenderedBounds = new(bounds.topLeft - parentBounds.topLeft, bounds.bottomRight - parentBounds.topLeft);
+        RenderedWidth = bounds.Width;
+        RenderedHeight = bounds.Height;
+
+        // Invalidating the layout implies invalidating the content
+        Dirty(DirtyFlags.Content);
+
+        return bounds;
+    }
+
+    internal void InvokeOnMouseDown(MouseButton button) => OnMouseDown?.Invoke();
+    internal void InvokeOnMouseUp(MouseButton button) => OnMouseUp?.Invoke();
+    internal void InvokeOnMouseEnter(VectorInt2 pos) => OnMouseEnter?.Invoke();
+    internal void InvokeOnMouseLeave(VectorInt2 pos) => OnMouseLeave?.Invoke();
+    internal void InvokeOnMouseOver(VectorInt2 pos) => OnMouseOver?.Invoke();
+    internal void InvokeOnDoubleClick() => OnDoubleClick?.Invoke();
+    internal void InvokeOnMouseWheel(Vector2 delta) => OnMouseWheel?.Invoke();
+    internal void InvokeOnKeyDown(KeyCode key) => OnKeyDown?.Invoke();
+    internal void InvokeOnKeyUp(KeyCode key) => OnKeyUp?.Invoke();
+    internal void InvokeOnDragStart() => OnDragStart?.Invoke();
+    internal void InvokeOnDrop() => OnDrop?.Invoke();
+    internal void InvokeOnDragEnter() => OnDragEnter?.Invoke();
+    internal void InvokeOnDragLeave() => OnDragLeave?.Invoke();
+    internal void InvokeOnDragOver() => OnDragOver?.Invoke();
+    internal void InvokeOnFocusGot() => OnFocusGot?.Invoke();
+    internal void InvokeOnFocusLost() => OnFocusLost?.Invoke();
+    internal void InvokeOnLoaded() => OnLoaded?.Invoke();
+    internal void InvokeOnUnloaded() => OnUnloaded?.Invoke();
+    internal void InvokeOnDraw() => OnDraw?.Invoke();
 }
 
 public enum Alignment
@@ -248,4 +379,14 @@ public enum Alignment
     Bottom = Right,
     Start = Left,
     End = Right
+}
+
+[Flags]
+public enum DirtyFlags
+{
+    None,
+    Layout = 1 << 0,
+    Content = 1 << 1,
+    ChildContent = 1 << 2,
+    ChildLayout = 1 << 3
 }

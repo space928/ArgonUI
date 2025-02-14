@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArgonUI;
+namespace ArgonUI.UIElements;
 
 public class Panel : UIElement, IContainer
 {
@@ -45,7 +45,7 @@ public class Panel : UIElement, IContainer
         throw new NotImplementedException();
     }
 
-    protected override void Draw(Bounds2D bounds, IDrawContext context)
+    protected internal override void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands)
     {
         throw new NotImplementedException();
     }

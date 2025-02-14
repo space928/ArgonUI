@@ -6,7 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArgonUI;
+namespace ArgonUI.UIElements;
 
 public interface IContainer
 {
