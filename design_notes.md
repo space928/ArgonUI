@@ -1,5 +1,18 @@
 # Data Binding
 
+All bindable stuff should implement `INotifyPropertyChanged` (or maybe a fancier 
+version of it that's more efficient/provides more info). To bind a view property 
+(eg: `Rectangle.Rounding`) to a model property (`eg: ViewModel.RectRound`) we 
+create a new `Binding` object. Maybe the `UIElement` should have a factory for 
+bindings which registers them in a list in the `UIElement` to keep track of them,
+and prevent them from being GC-ed.
+
+When a `Binding : IDisposable` is created it takes a `new Binding(INotifyPropertyChanged 
+srcObj, string srcProp, UIElement dstObj, string dstProp, [BindingDirection dir, 
+UpdateMode mode, ValidateCallback validate, UpdateCallback update])`. In the 
+constructor, it would subscribe to the `NotifyPropertyChanged` event and use it to 
+propagate changes as specified by the other parameters.
+
 # Drawing
 Say we have a UI with the following component graph:
 ```
@@ -168,3 +181,46 @@ void flushBatch() {
 		1. Swap
 
 # Input
+
+# Styling
+
+At the moment styling/drawing are done in a fairly conventional way where each `UIElement` exposes 
+a number of properties which can be set to control the look of an element. This is simple but has 
+a few limitations:
+
+1. Styling many similar components requires manually setting these style properties on each.
+	1. Usually users want all components to look similar, ie: share common colours, etc...
+	1. Many users are familiar with CSS, which allows components to inherit the style of their 
+	   parents. I'm specifically talking about both components that derive from each other (ie: 
+	   `Button` and `ImageButton`) and components that are children in the UI hierarchy (ie: a 
+	   style on a container should apply to the components it contains).
+1. Animating components requires manually updating the style properties at a regular interval.
+	1. Again, CSS animations spoil us.
+	1. Having animation handled in the style object would be quite nice.
+	1. Having style triggers (onclick, onhover, etc...) would be useful.
+1. If we want to change styling drastically, we would need to override the `Draw` method of the 
+   component. 
+	1. For instance, in material design, clicking a button results in a circle animation, 
+	   implementing this would require adding an extra draw command to the button.
+	1. In many cases though this can be worked around by adding more properties to each element.
+	1. Alternatively, components and how they are drawn could be separated so that the drawing of 
+	   an element is defined by it's style.
+	1. This would might result in overly tight coupling between `UIElement`s and styles, making a 
+	   new `UIElement` would require adding drawing code for it to the style system. How would a 
+	   style know what kind of element it's drawing?
+
+The basic approach to composable, reusable styles is to have a `Style` object which can be set on a
+`UIElement`. The `Style` object would contain stylable properties (note that this creates some 
+degree of coupling between `UIElement`s and the `Style`). At draw time, the `UIElement` checks it's
+`Style` or parent styles and applies them.
+
+With the current design, there's no way of knowing whether a property has been "overridden" or not,
+this is an issue because when a style is applied it will override all properties on an object, 
+meaning that to set an override on a single element a new `Style` needs to be created, setting the 
+property directly would do nothing. In WPF this is solved with DependencyProperties which know when 
+they are overridden but they are quite cumbersome.
+
+Changing `Style` properties also implies invalidating dependent elements, this could be done with 
+DataBinding, but would result in a lot of bindings, probably not very efficient? Maybe it's fine 
+though if a `Style` property changes then the `UIElement` knows it needs to be invalidated it 
+doesn't care what changed (exception being layout vs content).

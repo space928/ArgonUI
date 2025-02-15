@@ -15,12 +15,26 @@ public class Rectangle : UIElement
     /// <summary>
     /// The colour of this rectangle.
     /// </summary>
-    public Vector4 Colour { get => colour; set => UpdateProperty(ref colour, value); }
+    public Vector4 Colour
+    {
+        get => colour; set
+        {
+            UpdateProperty(ref colour, value);
+            Dirty(DirtyFlags.Content);
+        }
+    }
 
     /// <summary>
     /// The radius of the corners of this rectangle.
     /// </summary>
-    public float Rounding { get => rounding; set => UpdateProperty(ref rounding, value); }
+    public float Rounding
+    {
+        get => rounding; set
+        {
+            UpdateProperty(ref rounding, value);
+            Dirty(DirtyFlags.Content);
+        }
+    }
 
     protected internal override void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands)
     {

@@ -25,7 +25,14 @@ public class UIWindowElement : UIElement, IContainer
     /// <summary>
     /// The background colour of this window.
     /// </summary>
-    public Vector4 BGColour { get => colour; set => UpdateProperty(ref colour, value); }
+    public Vector4 BGColour
+    {
+        get => colour; set
+        {
+            UpdateProperty(ref colour, value);
+            Dirty(DirtyFlags.Content);
+        }
+    }
 
     internal UIWindowElement(UIWindow window)
     {
@@ -37,11 +44,13 @@ public class UIWindowElement : UIElement, IContainer
         {
             Width = Window.Size.x;
             Height = Window.Size.y;
+            Dirty(DirtyFlags.Content);
         };
         Window.OnResize += () =>
         {
             Width = Window.Size.x;
             Height = Window.Size.y;
+            Dirty(DirtyFlags.Content);
         };
     }
 
@@ -100,6 +109,7 @@ public class UIWindowElement : UIElement, IContainer
 
     protected internal override void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands)
     {
+        commands.Clear();
         commands.Add(ctx => ctx.Clear(colour));
     }
 }

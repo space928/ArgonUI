@@ -14,16 +14,16 @@ public abstract class UIWindow : IDisposable
 {
     protected readonly ArgonManager argonManager;
     private readonly InputManager inputManager;
+    private readonly UIRenderer renderer;
     private long lastRenderTime = 0;
     private long updatePeriod;
-    private DrawCommandGraph drawCommandGraph;
 
     private const long TicksPerSecond = 10 * 1000 * 1000;
 
     public abstract Thread UIThread { get; }
     public abstract string Title { get; set; }
     // Icon
-    public abstract IDrawContext DrawContext { get; }
+    public abstract IDrawContext? DrawContext { get; }
     public abstract VectorInt2 Size { get; set; }
     public abstract VectorInt2 Position { get; set; }
     public UIWindowElement RootElement { get; init; }
@@ -42,7 +42,7 @@ public abstract class UIWindow : IDisposable
         argonManager.CreateWindow(this);
         inputManager = argonManager.InputManager;
         RootElement = new(this);
-        drawCommandGraph = new(RootElement);
+        renderer = new(this);
 
         this.OnRender += HandleOnRender;
     }
@@ -66,6 +66,7 @@ public abstract class UIWindow : IDisposable
         if (now - lastRenderTime > updatePeriod)
         {
             lastRenderTime = now;
+            renderer?.DrawElements();
             RenderFrame();
         }
     }
@@ -83,40 +84,7 @@ public abstract class UIWindow : IDisposable
     {
         lastRenderTime = DateTime.UtcNow.Ticks;
 
-        LayoutElementRecurse(RootElement, drawCommandGraph);
-        DrawElementRecurse(RootElement, drawCommandGraph);
-    }
-
-    private static void LayoutElementRecurse(UIElement element, DrawCommandGraph drawGraph)
-    {
-        if ((element.DirtyFlags & DirtyFlags.Layout) != 0)
-        {
-            element.ClearDirtyFlag(DirtyFlags.Layout);
-            element.Layout();
-        }
-
-        if (element is IContainer container && (element.DirtyFlags & DirtyFlags.ChildLayout) != 0)
-        {
-            element.ClearDirtyFlag(DirtyFlags.ChildLayout);
-            foreach (var child in container.Children)
-                LayoutElementRecurse(child, drawGraph.Children.GetOrAdd(child, () => new(child)));
-        }
-    }
-
-    private static void DrawElementRecurse(UIElement element, DrawCommandGraph drawGraph)
-    {
-        if ((element.DirtyFlags & DirtyFlags.Content) != 0)
-        {
-            element.ClearDirtyFlag(DirtyFlags.Content);
-            element.Draw(element.RenderedBoundsAbsolute, drawGraph.DrawCommands);
-        }
-
-        if (element is IContainer container && (element.DirtyFlags & DirtyFlags.ChildContent) != 0)
-        {
-            element.ClearDirtyFlag(DirtyFlags.ChildContent);
-            foreach (var child in container.Children)
-                DrawElementRecurse(child, drawGraph.Children.GetOrAdd(child, () => new(child)));
-        }
+        renderer.RenderFrame();
     }
 
     protected void OnMouseMove(UIWindow sender, VectorInt2 mousePos)

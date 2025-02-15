@@ -5,7 +5,10 @@ using Silk.NET.Windowing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using MouseButton = ArgonUI.Input.MouseButton;
@@ -33,7 +36,7 @@ public class OpenGLWindow : UIWindow
         } 
     }
 
-    public override IDrawContext DrawContext => drawContext!;
+    public override IDrawContext? DrawContext => drawContext;
 
     public override VectorInt2 Size
     {
@@ -119,6 +122,7 @@ public class OpenGLWindow : UIWindow
             mainMouse = inputContext.Mice.Count > 0 ? inputContext.Mice[0] : null;
 
             drawContext = new(gl);
+            drawContext.InitRenderer(this);
 
             MapInput();
         };
@@ -184,5 +188,17 @@ public class OpenGLWindow : UIWindow
             OnMouseWheel(this, delta);
             lastScrollPos = posVec;
         };
+    }
+
+    public static Stream LoadResourceFile(string path)
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        string? resourceName = assembly.GetManifestResourceNames()
+            .FirstOrDefault(str => str.EndsWith(Path.GetFileName(path)));
+
+        if (resourceName == null || assembly == null)
+            throw new FileNotFoundException(path);
+
+        return assembly.GetManifestResourceStream(resourceName) ?? throw new FileNotFoundException(path);
     }
 }

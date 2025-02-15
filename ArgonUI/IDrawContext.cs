@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ArgonUI;
 
-public interface IDrawContext
+public interface IDrawContext : IDisposable
 {
     // UIElements are represented by a vertex buffer and a material instance
     // When dirty, a UI element may need to update it's vertex buffer, but it might only need to update it's material.
@@ -18,6 +18,10 @@ public interface IDrawContext
     // Maybe we could take all the vertex buffers which haven't changed in the last 10 frames and attempt to batch them into one.
     // We could also consider using gpu instancing or geometry shaders. We usually are just drawing quads of various sizes and
     // positions with a couple of different shader variants.
+
+    public void InitRenderer(UIWindow window);
+    public void StartFrame(Bounds2D region);
+    public void EndFrame();
 
     public void Clear(Vector4 colour);
     public void DrawRect(Bounds2D bounds, Vector4 colour, float rounding);
