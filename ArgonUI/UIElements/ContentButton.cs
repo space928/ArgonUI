@@ -1,6 +1,7 @@
 ﻿using ArgonUI.Drawing;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -8,13 +9,13 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
-public class Rectangle : UIElement
+public class ContentButton : ElementPresenterBase
 {
     private Vector4 colour;
     private float rounding;
 
     /// <summary>
-    /// The colour of this rectangle.
+    /// The colour of this button.
     /// </summary>
     public Vector4 Colour
     {
@@ -26,7 +27,7 @@ public class Rectangle : UIElement
     }
 
     /// <summary>
-    /// The radius of the corners of this rectangle.
+    /// The radius of the corners of this button.
     /// </summary>
     public float Rounding
     {

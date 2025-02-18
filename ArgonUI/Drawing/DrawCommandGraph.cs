@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ArgonUI.UIElements;
 
-namespace ArgonUI;
+namespace ArgonUI.Drawing;
 
 public class DrawCommandGraph(UIElement element)
 {

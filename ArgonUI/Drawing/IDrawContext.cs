@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArgonUI;
+namespace ArgonUI.Drawing;
 
 public interface IDrawContext : IDisposable
 {
@@ -25,56 +26,18 @@ public interface IDrawContext : IDisposable
 
     public void Clear(Vector4 colour);
     public void DrawRect(Bounds2D bounds, Vector4 colour, float rounding);
-    public void DrawText(Bounds2D bounds, float size, string c, IFontHandle font, Vector4 colour);
-    public void DrawChar(Bounds2D bounds, float size, char c, IFontHandle font, Vector4 colour);
+    public void DrawText(Bounds2D bounds, float size, string c, BMFont font, Vector4 colour);
+    public void DrawChar(Bounds2D bounds, float size, char c, BMFont font, Vector4 colour);
     public void DrawTexture(Bounds2D bounds, ITextureHandle texture, float rounding);
     public void DrawGradient(Bounds2D bounds, Vector4 colourA, Vector4 colourB, Vector4 colourC, Vector4 colourD, float rounding);
     public void DrawShadow(Bounds2D bounds, Vector4 colour, float rounding, float blur);
 
     public void FlushBatch();
-}
 
-public interface ITextureHandle : IDisposable
-{
+    // Closes the stream when complete
+    public ITextureHandle LoadTexture(Stream data, string? name = null, 
+        TextureCompression compression = TextureCompression.Unknown);
 
-}
-
-public interface IFontHandle : ITextureHandle
-{
-
-}
-
-[StructLayout(LayoutKind.Sequential)]
-public struct ArgonVertex
-{
-    public float x;
-    public float y;
-    public float z;
-
-    public float u;
-    public float v;
-
-    public float r, g, b, a;
-}
-
-[Flags]
-public enum ShaderFeatures
-{
-    Default = 0,
-    Transparency = 1 << 0,
-    RoundedCoreners = 1 << 1,
-    Text = 1 << 2,
-    Outline = 1 << 3,
-    Shadow = 1 << 4,
-}
-
-public struct ShaderParameters
-{
-    // Base colour?
-    public float roundingRadius;
-    public string? texture;
-    public Vector3 position;
-    public Bounds2D clipBounds;
-
-    public ShaderFeatures features;
+    public ITextureHandle LoadTexture(ReadOnlyMemory<byte> data, string? name = null,
+        TextureCompression compression = TextureCompression.Unknown);
 }

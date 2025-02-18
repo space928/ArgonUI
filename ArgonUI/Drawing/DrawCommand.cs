@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArgonUI;
+namespace ArgonUI.Drawing;
 
 // TODO: This seems like a premature optimisation, maybe explore in the future?
 

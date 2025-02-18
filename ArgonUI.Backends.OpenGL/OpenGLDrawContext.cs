@@ -1,7 +1,9 @@
-﻿using Silk.NET.OpenGL;
+﻿using ArgonUI.Drawing;
+using Silk.NET.OpenGL;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
@@ -103,11 +105,6 @@ internal class OpenGLDrawContext : IDrawContext
         gl.Clear((uint)ClearBufferMask.ColorBufferBit);
     }
 
-    public void DrawChar(Bounds2D bounds, float size, char c, IFontHandle font, Vector4 colour)
-    {
-        throw new NotImplementedException();
-    }
-
     public void DrawGradient(Bounds2D bounds, Vector4 colourA, Vector4 colourB, Vector4 colourC, Vector4 colourD, float rounding)
     {
         throw new NotImplementedException();
@@ -164,7 +161,12 @@ internal class OpenGLDrawContext : IDrawContext
         throw new NotImplementedException();
     }
 
-    public void DrawText(Bounds2D bounds, float size, string c, IFontHandle font, Vector4 colour)
+    public void DrawChar(Bounds2D bounds, float size, char c, BMFont font, Vector4 colour)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void DrawText(Bounds2D bounds, float size, string c, BMFont font, Vector4 colour)
     {
         throw new NotImplementedException();
     }
@@ -196,5 +198,15 @@ internal class OpenGLDrawContext : IDrawContext
 
         vertPos = 0;
         vertCount = 0;
+    }
+
+    public ITextureHandle LoadTexture(Stream data, string? name = null, TextureCompression compression = TextureCompression.Unknown)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ITextureHandle LoadTexture(ReadOnlyMemory<byte> data, string? name = null, TextureCompression compression = TextureCompression.Unknown)
+    {
+        throw new NotImplementedException();
     }
 }

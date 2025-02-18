@@ -1,4 +1,6 @@
 ﻿using Silk.NET.Maths;
+using Silk.NET.OpenGL;
+using StbImageSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,5 +21,17 @@ public static partial class ExtensionMethods
     {
         var wnd = new OpenGLWindow(argon);
         return wnd;
+    }
+
+    internal static (PixelFormat pxFmt, InternalFormat intFmt, PixelType pxType) ToOpenGLFormat(this ColorComponents components)
+    {
+        return components switch
+        {
+            ColorComponents.Grey => (PixelFormat.Red, InternalFormat.R8, PixelType.UnsignedByte),
+            ColorComponents.GreyAlpha => (PixelFormat.RG, InternalFormat.RG8, PixelType.UnsignedByte),
+            ColorComponents.RedGreenBlue => (PixelFormat.Rgb, InternalFormat.Rgb8, PixelType.UnsignedByte),
+            ColorComponents.RedGreenBlueAlpha => (PixelFormat.Rgba, InternalFormat.Rgba8, PixelType.UnsignedByte),
+            _ => throw new Exception("Unknown pixel format 'Default'!"),
+        };
     }
 }

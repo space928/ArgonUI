@@ -8,8 +8,6 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        Console.WriteLine("Welcome to ArgonUI!");
-        
         ArgonManager argon = new();
         var wnd = argon.CreateOpenGLWindow();
         var rect = new Rectangle();
@@ -22,7 +20,7 @@ public class Program
         rect.Colour = new(0, .8f, .25f, 1);
         rect.OnMouseDown += () =>
         {
-            rect.Dirty(DirtyFlags.Content);
+            //rect.Dirty(DirtyFlags.Content);
             //Console.WriteLine("Rectangle clicked!");
         };
         rect.OnMouseEnter += () =>

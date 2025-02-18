@@ -224,3 +224,182 @@ Changing `Style` properties also implies invalidating dependent elements, this c
 DataBinding, but would result in a lot of bindings, probably not very efficient? Maybe it's fine 
 though if a `Style` property changes then the `UIElement` knows it needs to be invalidated it 
 doesn't care what changed (exception being layout vs content).
+
+### Idea
+
+`UIElement`s have a `Style? Style` property. A `Style` instance declares a number of properties which
+wrap the common properties of `UIElement`s which can be styled. These wrapped properties would be of 
+type `Stylable<>` which would have similar semantics to `Nullable<>` while adding certain features:
+ - Can be set to `Stylable<>.Default` to use the inherited value
+ - Transitions for OnSet behaviour?
+ - Predicate callback for conditionallly applying the property to elements?
+ - On set, raises a property changed notification (or similar) which the `UIElement` the style is 
+   bound to listens to. When the owning `UIElement` receives a property change notification in the 
+   style, it then dispatches a call back to the style with itself and it's subtree of `UIElement`s,
+   the style object then applies it's changes properties to the tree.
+
+We need some way of efficiently binding `Style` properties to `UIElement` properties. One method could
+be via source generation. When a child element is added to the hierarchy, styles need to be reevaluted.
+
+```cs
+public partial class Style
+{
+	// Base logic for styling
+	// ...
+}
+
+public partial class Rectangle : UIElement
+{
+	/// <summary>
+    /// The colour of this rectangle.
+    /// </summary>
+	[Reactive][Dirty(DirtyFlags.Content)]
+	[Stylable(DocString: "This element's colour.")]
+	private Vector4 Colour;
+}
+
+// Generates
+public partial class Rectangle : UIElement
+{
+	/// <summary>
+    /// The colour of this rectangle.
+    /// </summary>
+    public Vector4 Colour
+    {
+        get => colour; set
+        {
+            UpdateProperty(ref colour, value);
+            Dirty(DirtyFlags.Content);
+        }
+    }
+}
+
+public partial class Style : ReactiveObject
+{
+	/// <summary>
+    /// This element's colour.
+    /// </summary>
+    public Stylable<Vector4> Colour
+    {
+        get => colour; set
+        {
+			colour.Update(value);
+			OnPropertyChanged(nameof(Colour));
+            //UpdateProperty(ref colour, value);
+        }
+    }
+
+	internal void Apply_Colour(UIElement element)
+	{
+		if (colour?.shouldSet(element) ?? true && colour.IsOverridden)
+		{
+			switch (element)
+			{
+				case Rectangle rectangle:
+					rectangle.Colour = colour.Value;
+					break;
+				default:
+					break;
+			}
+		}
+	}
+}
+```
+
+Some features of `Stylable<T>`:
+
+```cs
+public class Stylable<T>
+{
+	private readonly bool overridden;
+	internal T value;
+	private Predicate<UIElement>? shouldSet;
+	private Transition? onSet;
+	// This allows us to do some magic so that the following usage works:
+	//   style.Colour = new Vector4(0.5);
+	//   style.Colour.Transition = ...
+	//   // When we next update Colour we want the metadata (ie: the transition, etc...)
+	//   // to be preserved
+	//   style.Colour = Vector4.One;
+	//   // We can still completely override the stylable by making anew one ourselves
+	//   style.Colour = new Stylable<Vector4>(Vector4.One, transition);
+	private isImplict;
+	
+	public Stylable(T value)
+	{
+		this.isImplicit = false;
+	    this.value = value;
+	    overridden = true;
+	}
+	
+	public readonly bool IsOverridden => overridden;
+	
+	public T Value
+	{
+	    get
+	    {
+	        if (!overridden)
+	            ThrowHelper.ThrowInvalidOperationException_InvalidOperation_NoValue();
+	        return value;
+	    }
+		set
+		{
+			this.value = value;
+			overridden = true;
+			onSet?.Start(ref this);
+		}
+	}
+
+	public Predicate<UIElement>? ShouldSet { get; set; }
+	public Transition? Transition { get; set; }
+
+	public void Update(in Stylable<T> value)
+	{
+		if (value.isImplicit)
+			this.value = value.value;
+		else
+			this = value;
+	}
+
+	public static implicit operator Stylable<T>(T value)
+	{
+	    var ret = new Stylable<T>(value);
+		ret.isImplicit = true;
+	}
+	
+	public static explicit operator T(Stylable<T> value) => value!.Value;
+}
+```
+
+## Transitions
+
+A `Transition` is effectively just an IEnumerable delegate. It is responsible for updating the 
+given property as needed. It is invoked at the end of each `RenderFrame()` 
+
+```cs
+void RenderFrame()
+{
+	//...
+
+	// Apply transitions
+}
+
+public abstract class Transition
+{
+	public IEnumerator OnFrame()
+	{
+		if (complete)
+			yield return false;
+		// Need to get time since start somehow?
+		Colour = Lerp(...);
+		yield return true;
+	}
+}
+```
+
+## Fonts
+
+MSDF font rendering as in pySSV (https://github.com/space928/Shaders-For-Scientific-Visualisation/blob/main/pySSV/ssv_fonts.py).
+
+Maybe make a dotnet tool to use https://github.com/Chlumsky/msdfgen to automatically generate
+assets from TTFs and embed them in the assembly?

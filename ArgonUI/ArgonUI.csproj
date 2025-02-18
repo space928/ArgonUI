@@ -4,6 +4,49 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Title>ArgonUI</Title>
+	<Version>0.1.1-pre</Version>
+	<Authors>Thomas Mathieson</Authors>
+	<Copyright>Copyright © Thomas Mathieson 2025</Copyright>
+	<PackageProjectUrl>https://github.com/space928/ArgonUI</PackageProjectUrl>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<RepositoryUrl>https://github.com/space928/ArgonUI.git</RepositoryUrl>
+	<RepositoryType>git</RepositoryType>
+	<PackageTags>ui;framework;opengl;2d;window</PackageTags>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+	<IncludeSymbols>True</IncludeSymbols>
+	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <IsTrimmable>True</IsTrimmable>
+    <IsAotCompatible>True</IsAotCompatible>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <IsTrimmable>True</IsTrimmable>
+    <IsAotCompatible>True</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Fonts\NotoSans-SemiBold.fnt" />
+    <None Remove="Fonts\notosans.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Fonts\notosans.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Fonts\NotoSans-SemiBold.fnt" />
+  </ItemGroup>
 
 </Project>
