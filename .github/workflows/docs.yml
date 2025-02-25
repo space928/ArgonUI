@@ -28,7 +28,7 @@ jobs:
       #run: msbuild ${{ github.workspace }}/$proj -t:rebuild -property:Configuration=Release
     
     - name: Generate docs
-      uses: nunit/docfx-action@4.0.0
+      uses: nunit/docfx-action@v4.0.0
       with:
         args: ArgonUI.Docs/docfx.json
 
