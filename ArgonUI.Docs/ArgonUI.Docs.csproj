@@ -11,10 +11,6 @@
     <ProjectReference Include="..\ArgonUI\ArgonUI.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="templates\" />
-  </ItemGroup>
-
   <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(OS)' == 'Windows_NT'">
     <Exec Command="docfx docfx.json" />
   </Target>
