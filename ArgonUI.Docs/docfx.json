@@ -54,7 +54,8 @@
     "fileMetadataFiles": [],
     "template": [
       "default",
-      "templates/discordfx"
+      "templates/discordfx",
+      "templates/argon",
     ],
     "postProcessors": [],
     "markdownEngineName": "markdig",

@@ -4,7 +4,8 @@
     <img src="https://github.com/space928/ArgonUI/blob/main/QPlayer/Resources/IconM.png?raw=true" alt="ArgonUI Logo" width="128" height="128">
 </p>
 
-[![Build Status](https://github.com/space928/ArgonUI/actions/workflows/dotnet-desktop.yml/badge.svg?branch=main)](https://github.com/space928/ArgonUI/actions/workflows/dotnet-desktop.yml)
+[![Build Status](https://github.com/space928/ArgonUI/actions/workflows/dotnet.yml/badge.svg?branch=main)](https://github.com/space928/ArgonUI/actions/workflows/dotnet.yml)
+[![Build Status](https://github.com/space928/ArgonUI/actions/workflows/docs.yml/badge.svg?branch=main)](https://space928.github.io/ArgonUI/)
 [![GitHub License](https://img.shields.io/github/license/space928/ArgonUI)](https://github.com/space928/ArgonUI/blob/main/LICENSE.txt)
 [![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/space928/ArgonUI/total)](https://github.com/space928/ArgonUI/releases)
 [![Nuget](https://img.shields.io/nuget/v/ArgonUI?logo=Nuget&logoColor=fff)](https://www.nuget.org/packages/ArgonUI/)
@@ -93,6 +94,8 @@ label.Text = "Hello World!";
 
 wnd.Wait();
 ```
+
+For more details see the [Documentation](https://space928.github.io/ArgonUI/).
 
 
 ## Building

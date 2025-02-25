@@ -1,0 +1,49 @@
+﻿{{! A little summary table of all the members in a class }}
+
+<h4 id="{{id}}_member_summary">Member Summary</h4>
+<table class="table table-bordered table-condensed">
+    <thead>
+        <tr>
+            <th><strong>{{__global.type}}</strong></th>
+            <th><strong>{{__global.description}}</strong></th>
+            <th><strong>{{__global.summary}}</strong></th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#children}} {{! Iterate through each kind of child (property, field, constructor, method, etc...) }}
+        <tr>
+            <th>{{>partials/classSubtitle}}</th>
+            <th></th>
+            <th></th>
+        </tr>
+        {{#children}} {{! Now iterate through the members of that category}}
+        <tr>
+            <td>
+                <i>
+                    {{#inConstructor}}
+                    {{__global.constructorsInSubtitle}}
+                    {{/inConstructor}}
+                    {{#syntax}}
+                    {{#propertyValue}}
+                    {{{type.specName.0.value}}}
+                    {{/propertyValue}}
+                    {{#fieldValue}}
+                    {{{type.specName.0.value}}}
+                    {{/fieldValue}}
+                    {{#eventValue}}
+                    {{{type.specName.0.value}}}
+                    {{/eventValue}}
+                    {{#return}}
+                    {{{type.specName.0.value}}}
+                    {{/return}}
+                    {{/syntax}}
+                </i>
+            </td>
+
+            <td><a href="#{{id}}" onclick="navigation.navigate('#{{id}}');">{{name.0.value}}</a></td>
+            <td>{{{summary}}}</td>
+        </tr>
+        {{/children}}
+        {{/children}}
+    </tbody>
+</table>
