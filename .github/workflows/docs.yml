@@ -24,7 +24,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore ${{ github.workspace }}/ArgonUI.Docs/ArgonUI.Docs.csproj
     - name: Build
-      run: dotnet build --no-restore /ArgonUI.Docs/ArgonUI.Docs.csproj
+      run: dotnet build --no-restore ${{ github.workspace }}/ArgonUI.Docs/ArgonUI.Docs.csproj
       #run: msbuild ${{ github.workspace }}/$proj -t:rebuild -property:Configuration=Release
     
     - name: Generate docs
