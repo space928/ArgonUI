@@ -180,6 +180,47 @@ void flushBatch() {
 		1. Foreach cmd -> command()
 		1. Swap
 
+## Textures
+
+We need an abstract 2D texture interface which allows:
+ - Textures can be loaded from files (png, dds, bmp, jpeg, etc...).
+ - Textures can be loaded from a contiguous array of pixels.
+ - Textures need to be abstracted from the backend.
+ - Textures should be loaded asynchronously.
+ - Texture data can be updated after creation.
+
+For the OpenGL backend the plan is to have a couple of classes:
+
+**A general Texture2D class**. Which would implement all the texture functionality needed by 
+OpenGL:
+ - Texture creation
+ - Texture binding
+ - Uploading texture data to the GPU
+ - Dummy texture generation for unloaded textures (black, magenta, checkerboard)
+
+**A Texture2D loader class**. Implements loading from compressed formats (png, jpeg, dds, etc...):
+ - Needs to happen in the backend since dds, should remain compressed and be uploaded to the GPU 
+   directly.
+ - Should be async, as texture decompression can take quite a while.
+
+**ArgonTexture**  
+On the front end we need a texture abstraction which exposes some useful properties loaded from 
+the texture (width, height, etc...). These textures (called `ArgonTexture` from here on out), 
+provide the following functions:
+ - Creation from file name
+ - Creation from byte stream
+ - Creation from image bytes
+ - Update region (with `Memory<byte>`)
+ - Updating/creation from outside the `IDrawContext`
+
+The `ArgonTexture` holds a nullable reference to an `ITextureHandle` which is implemented by 
+`Texture2D`. All texture GL operations are declared by the `IDrawContext` and as such doing 
+anything to a texture requires an instance of the drawing context. For instance when an 
+`ArgonTexture` is created, it calls `IDrawContext.LoadTexture(...)` which returns an
+`ITextureHandle` which may or may not be valid (ie fully loaded) at any given time. To be able
+to perform texture operations at any time, the `ArgonTexture` stores a list of the texture 
+operations which need to be applied.
+
 # Input
 
 # Styling

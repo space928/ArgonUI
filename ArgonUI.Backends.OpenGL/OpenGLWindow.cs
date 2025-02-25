@@ -4,6 +4,7 @@ using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -21,31 +22,35 @@ public class OpenGLWindow : UIWindow
     private IWindow? nativeWnd;
     private OpenGLDrawContext? drawContext;
     private readonly Thread uiThread;
+    private readonly Thread eventThread;
     private GL? gl;
     private IInputContext? inputContext;
     private IKeyboard? mainKeyboard;
     private IMouse? mainMouse;
     private Vector2 lastScrollPos;
+    private readonly CancellationTokenSource isClosingTokenSource;
+    private readonly CancellationToken isClosingToken;
+    private readonly BlockingCollection<InputEvent> inputEvents;
 
-    public override string Title 
-    { 
-        get => nativeWnd?.Title ?? string.Empty; 
-        set 
-        { 
-            if (nativeWnd != null) 
-                nativeWnd.Title = value; 
-        } 
+    public override string Title
+    {
+        get => nativeWnd?.Title ?? string.Empty;
+        set
+        {
+            if (nativeWnd != null)
+                nativeWnd.Title = value;
+        }
     }
 
     public override IDrawContext? DrawContext => drawContext;
 
     public override VectorInt2 Size
     {
-        get 
+        get
         {
             if (nativeWnd == null)
                 return VectorInt2.Zero;
-            return nativeWnd.Size.ToVectorInt2(); 
+            return nativeWnd.Size.ToVectorInt2();
         }
         set
         {
@@ -55,7 +60,7 @@ public class OpenGLWindow : UIWindow
     }
     public override VectorInt2 Position
     {
-        get 
+        get
         {
             if (nativeWnd == null)
                 return VectorInt2.Zero;
@@ -78,12 +83,17 @@ public class OpenGLWindow : UIWindow
 
     public OpenGLWindow(ArgonManager argon, string title = "ArgonUI Window") : base(argon)
     {
-        uiThread = new(() =>
-        {
-            CreateWindow(title);
-            //nativeWnd?.MakeCurrent();
-            nativeWnd?.Run();
-        });
+        isClosingTokenSource = new();
+        isClosingToken = isClosingTokenSource.Token;
+        inputEvents = new();
+        uiThread = new(() => RunUIThread(title));
+        uiThread.Priority = ThreadPriority.AboveNormal;
+        uiThread.Name = "ArgonUIThread";
+
+        eventThread = new(RunEventThread);
+        eventThread.Priority = ThreadPriority.Normal;
+        eventThread.Name = "ArgonUIEventThread";
+
         uiThread.Start();
     }
 
@@ -92,14 +102,16 @@ public class OpenGLWindow : UIWindow
         var wndOptions = new WindowOptions(ViewOptions.Default);
         wndOptions.Samples = 4;
         wndOptions.Title = title;
+        wndOptions.IsEventDriven = true;
         wndOptions.API = new GraphicsAPI(ContextAPI.OpenGL, ContextProfile.Core, ContextFlags.Default, new(3, 3));
         nativeWnd = Window.Create(wndOptions);
-        //nativeWnd.IsEventDriven = true;
+        nativeWnd.IsEventDriven = true;
         nativeWnd.Load += OnLoaded;
         nativeWnd.FramebufferResize += _ => OnResize?.Invoke();
         nativeWnd.FileDrop += OnFileDrop;
         nativeWnd.Closing += OnClosing;
         nativeWnd.Render += delta => OnRender?.Invoke((float)delta);
+        nativeWnd.Closing += () => isClosingTokenSource.Cancel();
 
         nativeWnd.Load += () =>
         {
@@ -114,6 +126,9 @@ public class OpenGLWindow : UIWindow
                     return;
                 string msg = Marshal.PtrToStringUTF8(message, length);
                 Debug.WriteLine($"[GL_Debug] [{(DebugSeverity)severity}] [{(DebugType)type}] {msg}");
+
+                //if ((uint)severity == (uint)DebugSeverity.DebugSeverityHigh)
+                //    Debugger.Break();
             }, ref tmp);
             gl.Enable(EnableCap.DebugOutput);
 #endif
@@ -126,12 +141,67 @@ public class OpenGLWindow : UIWindow
             drawContext.InitRenderer(this);
 
             MapInput();
+            eventThread.Start();
         };
+    }
+
+    private void RunUIThread(string title)
+    {
+        CreateWindow(title);
+        //nativeWnd?.Run();
+        nativeWnd?.Initialize();
+        while ((!nativeWnd?.IsClosing) ?? true)
+        {
+            //nativeWnd?.ContinueEvents();
+            //shouldRenderEvent?.Wait(200, isClosingToken);
+            //shouldRenderEvent?.Reset();
+            nativeWnd?.DoEvents();
+            nativeWnd?.DoRender();
+        }
+    }
+
+    private void RunEventThread()
+    {
+        try
+        {
+            while ((!nativeWnd?.IsClosing) ?? true)
+            {
+                var evnt = inputEvents.Take(isClosingToken);
+                switch (evnt.type)
+                {
+                    case InputEventType.KeyDown:
+                        OnKeyDown(this, evnt.key);
+                        break;
+                    case InputEventType.KeyUp:
+                        OnKeyUp(this, evnt.key);
+                        break;
+                    case InputEventType.MouseDown:
+                        OnMouseDown(this, evnt.button);
+                        break;
+                    case InputEventType.MouseUp:
+                        OnMouseUp(this, evnt.button);
+                        break;
+                    case InputEventType.MouseMove:
+                        OnMouseMove(this, new((int)evnt.pos.X, (int)evnt.pos.Y));
+                        break;
+                    case InputEventType.MouseScroll:
+                        var delta = evnt.pos - lastScrollPos;
+                        OnMouseWheel(this, delta);
+                        lastScrollPos = evnt.pos;
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+        } catch (OperationCanceledException) { }
     }
 
     public override void Dispose()
     {
         base.Dispose();
+        drawContext?.Dispose();
+        isClosingTokenSource?.Cancel();
+        isClosingTokenSource?.Dispose();
         gl?.Dispose();
         inputContext?.Dispose();
         nativeWnd?.Dispose();
@@ -159,9 +229,9 @@ public class OpenGLWindow : UIWindow
         nativeWnd?.Close();
     }
 
-    protected override void RenderFrame()
+    public override void RequestRedraw()
     {
-        nativeWnd?.DoRender();
+        nativeWnd?.ContinueEvents();
     }
 
     protected override void SetMousePos(VectorInt2 mousePos)
@@ -177,18 +247,12 @@ public class OpenGLWindow : UIWindow
         if (mainKeyboard == null || mainMouse == null)
             return;
 
-        mainKeyboard.KeyDown += (keyboard, key, ind) => OnKeyDown(this, (KeyCode)key);
-        mainKeyboard.KeyUp += (keyboard, key, ind) => OnKeyUp(this, (KeyCode)key);
-        mainMouse.MouseDown += (mouse, button) => OnMouseDown(this, (MouseButton)button);
-        mainMouse.MouseUp += (mouse, button) => OnMouseUp(this, (MouseButton)button);
-        mainMouse.MouseMove += (mouse, pos) => OnMouseMove(this, new((int)pos.X, (int)pos.Y));
-        mainMouse.Scroll += (mouse, pos) =>
-        {
-            var posVec = new Vector2(pos.X, pos.Y);
-            var delta = posVec - lastScrollPos;
-            OnMouseWheel(this, delta);
-            lastScrollPos = posVec;
-        };
+        mainKeyboard.KeyDown += (keyboard, key, ind) => inputEvents.Add(new(InputEventType.KeyDown, (KeyCode)key));
+        mainKeyboard.KeyUp += (keyboard, key, ind) => inputEvents.Add(new(InputEventType.KeyUp, (KeyCode)key));
+        mainMouse.MouseDown += (mouse, button) => inputEvents.Add(new(InputEventType.MouseDown, (MouseButton)button));
+        mainMouse.MouseUp += (mouse, button) => inputEvents.Add(new(InputEventType.MouseUp, (MouseButton)button));
+        mainMouse.MouseMove += (mouse, pos) => inputEvents.Add(new(InputEventType.MouseMove, pos));
+        mainMouse.Scroll += (mouse, pos) => inputEvents.Add(new(InputEventType.MouseScroll, new Vector2(pos.X, pos.Y)));
     }
 
     public static Stream LoadResourceFile(string path)
@@ -201,5 +265,48 @@ public class OpenGLWindow : UIWindow
             throw new FileNotFoundException(path);
 
         return assembly.GetManifestResourceStream(resourceName) ?? throw new FileNotFoundException(path);
+    }
+
+    private struct InputEvent
+    {
+        public InputEventType type;
+        public KeyCode key;
+        public MouseButton button;
+        public Vector2 pos;
+        //public Vector2 delta;
+
+        public InputEvent()
+        {
+
+        }
+
+        public InputEvent(InputEventType type, KeyCode key)
+        {
+            this.type = type;
+            this.key = key;
+        }
+
+        public InputEvent(InputEventType type, MouseButton button)
+        {
+            this.type = type;
+            this.button = button;
+        }
+
+        public InputEvent(InputEventType type, Vector2 pos)
+        {
+            this.type = type;
+            this.pos = pos;
+        }
+    }
+
+    private enum InputEventType
+    {
+        None,
+        KeyDown,
+        KeyUp,
+        MouseDown,
+        MouseUp,
+        MouseMove,
+        MouseScroll
     }
 }

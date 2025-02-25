@@ -15,15 +15,54 @@ public class Label : UIElement
     private BMFont? font;
     private Vector4 colour;
 
+    public override int DesiredWidth => (int)Font.Measure(text, size).X;
+    public override int DesiredHeight => (int)Font.Measure(text, size).Y;
+
     /// <summary>
-    /// The label for this button.
+    /// The text represented by this label.
     /// </summary>
     public string? Text
     {
         get => text; set
         {
             UpdateProperty(ref text, value);
-            Dirty(DirtyFlags.Content);
+            Dirty(DirtyFlags.Content | DirtyFlags.Layout);
+        }
+    }
+
+    /// <summary>
+    /// The font used by this label.
+    /// </summary>
+    public BMFont Font
+    {
+        get => font ?? Fonts.Default; set
+        {
+            UpdateProperty(ref font, value);
+            Dirty(DirtyFlags.Content | DirtyFlags.Layout);
+        }
+    }
+
+    /// <summary>
+    /// The font size of this label.
+    /// </summary>
+    public float FontSize
+    {
+        get => size; set
+        {
+            UpdateProperty(ref size, value);
+            Dirty(DirtyFlags.Content | DirtyFlags.Layout);
+        }
+    }
+
+    /// <summary>
+    /// The text colour of this label.
+    /// </summary>
+    public Vector4 TextColour
+    {
+        get => colour; set
+        {
+            UpdateProperty(ref colour, value);
+            Dirty(DirtyFlags.Content | DirtyFlags.Layout);
         }
     }
 
@@ -32,7 +71,7 @@ public class Label : UIElement
         text = "Label";
         size = 14;
         font = null;
-        colour = Vector4.One;
+        colour = new(0, 0, 0, 1);
     }
 
     public Label(string? text) : this()
@@ -47,7 +86,9 @@ public class Label : UIElement
             return;
         commands.Add(ctx =>
         {
-            ctx.DrawText(bounds, size, text, font ?? Fonts.Default, colour);
+            var fnt = font ?? Fonts.Default;
+            fnt.FontTexture?.ExecuteDrawCommands(ctx);
+            ctx.DrawText(bounds, size, text, fnt, colour);
         });
     }
 }

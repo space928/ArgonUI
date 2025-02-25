@@ -46,6 +46,9 @@ internal class UIRenderer
         if (context == null)
             return;
 
+        if (drawCommands.Count == 0)
+            return;
+
         context.StartFrame(drawBounds);
         //context.StartFrame(Bounds2D.Zero);
         foreach (var drawCommand in drawCommands)

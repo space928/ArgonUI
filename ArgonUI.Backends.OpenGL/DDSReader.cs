@@ -88,7 +88,7 @@ public static class DDSReader
             tex.mipmaps = 1;
 
         // Determine the corresponding OpenGL format
-        tex.compression = TextureCompressionType.None; //IsCompressed(dds);
+        tex.compression = GLTextureCompressionType.None; //IsCompressed(dds);
         DetermineOGLFormat(ref tex, dds);
 
         // Read texture data
@@ -636,39 +636,39 @@ public static class DDSReader
                 tex.format = Silk.NET.OpenGL.PixelFormat.Rgba;
                 tex.internalFormat = Silk.NET.OpenGL.InternalFormat.CompressedRgbaS3TCDxt1Ext;
                 tex.pixelType = Silk.NET.OpenGL.PixelType.UnsignedByte;
-                tex.compression = TextureCompressionType.BC1;
+                tex.compression = GLTextureCompressionType.BC1;
                 break;
             case DXGI_FORMAT.DXGI_FORMAT_BC1_UNORM_SRGB:
                 tex.format = Silk.NET.OpenGL.PixelFormat.Rgba;
                 tex.internalFormat = Silk.NET.OpenGL.InternalFormat.CompressedSrgbAlphaS3TCDxt1Ext;
                 tex.pixelType = Silk.NET.OpenGL.PixelType.UnsignedByte;
-                tex.compression = TextureCompressionType.BC1;
+                tex.compression = GLTextureCompressionType.BC1;
                 break;
             case DXGI_FORMAT.DXGI_FORMAT_BC2_TYPELESS:
             case DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM:
                 tex.format = Silk.NET.OpenGL.PixelFormat.Rgba;
                 tex.internalFormat = Silk.NET.OpenGL.InternalFormat.CompressedRgbaS3TCDxt3Ext;
                 tex.pixelType = Silk.NET.OpenGL.PixelType.UnsignedByte;
-                tex.compression = TextureCompressionType.BC2;
+                tex.compression = GLTextureCompressionType.BC2;
                 break;
             case DXGI_FORMAT.DXGI_FORMAT_BC2_UNORM_SRGB:
                 tex.format = Silk.NET.OpenGL.PixelFormat.Rgba;
                 tex.internalFormat = Silk.NET.OpenGL.InternalFormat.CompressedSrgbAlphaS3TCDxt3Ext;
                 tex.pixelType = Silk.NET.OpenGL.PixelType.UnsignedByte;
-                tex.compression = TextureCompressionType.BC2;
+                tex.compression = GLTextureCompressionType.BC2;
                 break;
             case DXGI_FORMAT.DXGI_FORMAT_BC3_TYPELESS:
             case DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM:
                 tex.format = Silk.NET.OpenGL.PixelFormat.Rgba;
                 tex.internalFormat = Silk.NET.OpenGL.InternalFormat.CompressedRgbaS3TCDxt5Ext;
                 tex.pixelType = Silk.NET.OpenGL.PixelType.UnsignedByte;
-                tex.compression = TextureCompressionType.BC3;
+                tex.compression = GLTextureCompressionType.BC3;
                 break;
             case DXGI_FORMAT.DXGI_FORMAT_BC3_UNORM_SRGB:
                 tex.format = Silk.NET.OpenGL.PixelFormat.Rgba;
                 tex.internalFormat = Silk.NET.OpenGL.InternalFormat.CompressedSrgbAlphaS3TCDxt5Ext;
                 tex.pixelType = Silk.NET.OpenGL.PixelType.UnsignedByte;
-                tex.compression = TextureCompressionType.BC3;
+                tex.compression = GLTextureCompressionType.BC3;
                 break;
             case DXGI_FORMAT.DXGI_FORMAT_BC4_TYPELESS:
             case DXGI_FORMAT.DXGI_FORMAT_BC4_UNORM:
@@ -708,26 +708,26 @@ public static class DDSReader
                 tex.format = Silk.NET.OpenGL.PixelFormat.Rgba;
                 tex.internalFormat = Silk.NET.OpenGL.InternalFormat.CompressedRgbBptcUnsignedFloat;
                 tex.pixelType = Silk.NET.OpenGL.PixelType.Float;
-                tex.compression = TextureCompressionType.BC6H;
+                tex.compression = GLTextureCompressionType.BC6H;
                 break;
             case DXGI_FORMAT.DXGI_FORMAT_BC6H_SF16:
                 tex.format = Silk.NET.OpenGL.PixelFormat.Rgba;
                 tex.internalFormat = Silk.NET.OpenGL.InternalFormat.CompressedRgbBptcSignedFloat;
                 tex.pixelType = Silk.NET.OpenGL.PixelType.Float;
-                tex.compression = TextureCompressionType.BC6H;
+                tex.compression = GLTextureCompressionType.BC6H;
                 break;
             case DXGI_FORMAT.DXGI_FORMAT_BC7_TYPELESS:
             case DXGI_FORMAT.DXGI_FORMAT_BC7_UNORM:
                 tex.format = Silk.NET.OpenGL.PixelFormat.Rgba;
                 tex.internalFormat = Silk.NET.OpenGL.InternalFormat.CompressedRgbaBptcUnorm;
                 tex.pixelType = Silk.NET.OpenGL.PixelType.UnsignedByte;
-                tex.compression = TextureCompressionType.BC7;
+                tex.compression = GLTextureCompressionType.BC7;
                 break;
             case DXGI_FORMAT.DXGI_FORMAT_BC7_UNORM_SRGB:
                 tex.format = Silk.NET.OpenGL.PixelFormat.Rgba;
                 tex.internalFormat = Silk.NET.OpenGL.InternalFormat.CompressedSrgbAlphaBptcUnorm;
                 tex.pixelType = Silk.NET.OpenGL.PixelType.UnsignedByte;
-                tex.compression = TextureCompressionType.BC7;
+                tex.compression = GLTextureCompressionType.BC7;
                 break;
             case DXGI_FORMAT.DXGI_FORMAT_AYUV:
             case DXGI_FORMAT.DXGI_FORMAT_Y410:
@@ -881,7 +881,8 @@ public static class DDSReader
     /// </summary>
     /// <param name="fmt">the format to query</param>
     /// <returns>the number of bits per pixel for that format.</returns>
-    private static int BitsPerPixel(D3DFORMAT fmt)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0066:Convert switch statement to expression", Justification = "<Pending>")]
+    public static int BitsPerPixel(D3DFORMAT fmt)
     {
         switch (fmt)
         {
@@ -966,7 +967,8 @@ public static class DDSReader
         }
     }
 
-    private static bool IsCompressed(DDSFile dds)
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0066:Convert switch statement to expression", Justification = "<Pending>")]
+    public static bool IsCompressed(DDSFile dds)
     {
         if ((dds.header.ddspf.flags & DDSPixelFormatFlags.DDPF_FOURCC) == 0)
             return false;

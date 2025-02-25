@@ -28,7 +28,6 @@ public class BMFont : Font
     private readonly ReadOnlyCollection<BMFontKerning> kerningsRO;
     private FrozenDictionary<char, FrozenDictionary<char, float>> kerningsDictFrozen;
     private FrozenDictionary<char, BMFontChar> charsDictFrozen;
-    private Assembly? containingAssembly;
 
     /// <summary>
     /// This is the distance in pixels between each line of text.
@@ -124,6 +123,46 @@ public class BMFont : Font
         charsDictFrozen = FrozenDictionary<char, BMFontChar>.Empty;
     }
 
+    /// <summary>
+    /// Measures the approximate amount of space the font will require on screen in pixels.
+    /// </summary>
+    /// <param name="str">The string to measure.</param>
+    /// <param name="size">The font size.</param>
+    /// <returns>A vector of the measured width and height.</returns>
+    public Vector2 Measure(string? str, float size)
+    {
+        if (string.IsNullOrEmpty(str))
+            return Vector2.Zero;
+
+        Vector2 measure = Vector2.Zero;
+        float fontSize = size / Size;
+        foreach (char c in str)
+        {
+            var cDef = charsDictFrozen[c];
+            // TODO: Doesn't account for yOffset
+            measure.Y = Math.Max(measure.Y, cDef.height * fontSize);
+            measure.X += cDef.xAdvance * fontSize;
+        }
+        return measure;
+    }
+
+    /// <summary>
+    /// Measures the approximate amount of space the font will require on screen in pixels.
+    /// </summary>
+    /// <param name="c">The character to measure.</param>
+    /// <param name="size">The font size.</param>
+    /// <returns>A vector of the measured width and height.</returns>
+    public Vector2 Measure(char c, float size)
+    {
+        Vector2 measure = Vector2.Zero;
+        float fontSize = size / Size;
+        var cDef = charsDictFrozen[c];
+        // TODO: Doesn't account for yOffset
+        measure.Y = Math.Max(measure.Y, cDef.height * fontSize);
+        measure.X += cDef.xAdvance * fontSize;
+        return measure;
+    }
+
     #region Loading
     /// <summary>
     /// Loads a font from a BMFont file.
@@ -138,44 +177,24 @@ public class BMFont : Font
     {
         using var stream = ArgonManager.LoadResourceFile(fileName, containingAssembly);
         var bmf = Load(stream, xml);
-        bmf.containingAssembly = containingAssembly;
         return bmf;
     }
 
-    public static BMFont Load(Stream stream, bool xml)
+    public static BMFont Load(Stream stream, bool xml, Assembly? containingAssembly = null)
     {
+        BMFont bmf;
         if (xml)
-            return LoadFromXml(stream);
+            bmf = LoadFromXml(stream);
         else
             throw new NotImplementedException();
-    }
 
-    /// <summary>
-    /// Loads the defined textures in the font file.
-    /// </summary>
-    /// <param name="context"></param>
-    /// <exception cref="FileNotFoundException"></exception>
-    public void LoadTextures(IDrawContext context)
-    {
-        if (pages.Count >= 1)
+        if (bmf.pages.Count >= 1)
         {
-            string fileName = pages[0].TextureFile ?? throw new FileNotFoundException($"Attempted to load undefined texturein font '{Name}'");
-            var fs = ArgonManager.LoadResourceFile(fileName, containingAssembly);
-            var ext = Path.GetExtension(fileName).ToLowerInvariant();
-            TextureCompression compression = ext switch
-            {
-                ".bmp" => TextureCompression.BMP,
-                ".dds" => TextureCompression.DDS,
-                ".tga" => TextureCompression.TGA,
-                ".png" => TextureCompression.PNG,
-                ".jpg" => TextureCompression.JPEG,
-                ".jpeg" => TextureCompression.JPEG,
-                ".raw" => TextureCompression.Raw,
-                ".bin" => TextureCompression.Raw,
-                _ => TextureCompression.Unknown,
-            };
-            FontTexture = context.LoadTexture(fs, fileName[..^ext.Length], compression);
+            string fileName = bmf.pages[0].TextureFile ?? throw new FileNotFoundException($"Attempted to load undefined texture in font '{bmf.Name}'");
+            bmf.FontTexture = ArgonTexture.CreateFromFile(fileName, containingAssembly);
         }
+
+        return bmf;
     }
 
     private static BMFont LoadFromXml(Stream stream)
@@ -365,7 +384,7 @@ public class BMFont : Font
             throw new InvalidDataException($"Couldn't parse kernings for font '{Name}'.", ex);
         }
 
-        kerningsDictFrozen = kerns.Select(x => 
+        kerningsDictFrozen = kerns.Select(x =>
         new KeyValuePair<char, FrozenDictionary<char, float>>(x.Key, x.Value.ToFrozenDictionary()))
             .ToFrozenDictionary();
     }

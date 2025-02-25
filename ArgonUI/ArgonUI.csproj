@@ -5,7 +5,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Title>ArgonUI</Title>
-	<Version>0.1.1-pre</Version>
+	<Version>0.1.2-pre</Version>
 	<Authors>Thomas Mathieson</Authors>
 	<Copyright>Copyright © Thomas Mathieson 2025</Copyright>
 	<PackageProjectUrl>https://github.com/space928/ArgonUI</PackageProjectUrl>
@@ -42,11 +42,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Fonts\notosans.png" />
+    <EmbeddedResource Include="Fonts\notosans.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Fonts\NotoSans-SemiBold.fnt" />
+    <EmbeddedResource Include="Fonts\NotoSans-SemiBold.fnt" />
   </ItemGroup>
 
 </Project>

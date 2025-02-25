@@ -19,7 +19,7 @@ public struct DDSTexture
     public Silk.NET.OpenGL.PixelFormat format;
     public Silk.NET.OpenGL.InternalFormat internalFormat;
     public Silk.NET.OpenGL.PixelType pixelType;
-    public TextureCompressionType compression;
+    public GLTextureCompressionType compression;
 
     public Element[] data;
 
@@ -86,7 +86,7 @@ public struct DDSPixelFormat
     public uint aBitMask;
 }
 
-public enum TextureCompressionType
+public enum GLTextureCompressionType
 {
     None,
     BC1,
