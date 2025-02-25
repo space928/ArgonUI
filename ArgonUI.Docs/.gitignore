@@ -8,3 +8,4 @@
 /**/obj/
 output
 /api
+!/api/index.md
