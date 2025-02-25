@@ -15,8 +15,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    # Build the project from source so that DocFX can extract the generated documentation
+    - name: Restore dependencies
+      run: dotnet restore ${{ github.workspace }}/ArgonUI.Docs/ArgonUI.Docs.csproj
+    - name: Build
+      run: dotnet build --no-restore /ArgonUI.Docs/ArgonUI.Docs.csproj
+      #run: msbuild ${{ github.workspace }}/$proj -t:rebuild -property:Configuration=Release
+    
     - name: Generate docs
-      uses: nunit/docfx-action@v1.11.0
+      uses: nunit/docfx-action@4.0.0
       with:
         args: ArgonUI.Docs/docfx.json
 
