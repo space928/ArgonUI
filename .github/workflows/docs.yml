@@ -1,0 +1,70 @@
+name: DocFX
+
+on:
+  push:
+    branches: [ main ]
+#  pull_request:
+#    branches: [ main ]
+  release: 
+    types: [ created ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Generate docs
+      uses: nunit/docfx-action@v1.11.0
+      with:
+        args: ArgonUI.Docs/docfx.json
+
+    # Archive the generated site as an artifact
+    - name: Archive artifact
+      run: |
+        tar \
+          --dereference --hard-dereference \
+          --directory "$INPUT_PATH" \
+          -cvf "$RUNNER_TEMP/artifact.tar" \
+          --exclude=.git \
+          --exclude=.github \
+          .
+      env:
+        INPUT_PATH: ArgonUI.Docs/output 
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: github-pages
+        path: ${{ runner.temp }}/artifact.tar
+        retention-days: ${{ inputs.retention-days }}
+        if-no-files-found: error
+
+  deploy:
+    # Publish generated site using GitHub Pages
+    needs: build
+
+    # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
+    # Deploy to the github-pages environment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Specify runner + deployment step
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
+        
+    # Publish generated site using GitHub Pages
+    # - uses: actions/deploy-pages@v1.2.9
+    #   name: Publish Documentation on GitHub Pages
+    #   env:
+    #     BUILD_DIR: ArgonUI.Docs/output  # docfx's default output directory is _site
+    #     GH_PAT: ${{ secrets.GH_PAT }} # See https://github.com/maxheld83/ghpages

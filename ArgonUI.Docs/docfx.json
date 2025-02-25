@@ -1,0 +1,75 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "./",
+          "files": [
+            //"**/ArgonUI.csproj"
+            "**/bin/**/ArgonUI*.dll"
+          ]
+        }
+      ],
+      "dest": "api",
+      "disableGitFeatures": false
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "api/**.yml",
+          "api/index.md"
+        ]
+      },
+      {
+        "files": [
+          "articles/**.md",
+          "articles/**/toc.yml",
+          "toc.yml",
+          "*.md"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "images/**"
+        ]
+      }
+    ],
+    "overwrite": [
+      {
+        "files": [
+          "apidoc/**.md"
+        ],
+        "exclude": [
+          "obj/**",
+          "output/**"
+        ]
+      }
+    ],
+    "dest": "output",
+    "globalMetadataFiles": [],
+    "fileMetadataFiles": [],
+    "template": [
+      "default",
+      "templates/discordfx"
+    ],
+    "postProcessors": [],
+    "markdownEngineName": "markdig",
+    "noLangKeyword": false,
+    "keepFileLink": false,
+    "cleanupCacheHistory": false,
+    "disableGitFeatures": false,
+    "globalMetadata": {
+      "_appName": "ArgonUI",
+      //"_appFooter": ""
+      //"_appLogoPath": "images/logo.png",
+      //"_appFaviconPath": "images/favicon.ico",
+      "_enableSearch": true,
+      "_enableNewTab": true
+    },
+    "enumSortOrder": "declaringOrder"
+  }
+}
