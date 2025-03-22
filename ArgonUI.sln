@@ -24,6 +24,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{
 		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ArgonUI.SourceGenerator", "ArgonUI.SourceGenerator\ArgonUI.SourceGenerator.csproj", "{A7FBF5A2-1376-4025-BC40-72B41AB7DB60}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArgonUI.SourceGenerator.Test", "ArgonUI.SourceGenerator.Test\ArgonUI.SourceGenerator.Test.csproj", "{3DF80019-6CEB-4189-87E3-C97F935609C3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,6 +50,14 @@ Global
 		{222098EB-2B66-4579-9CCD-32CFF73BFBD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{222098EB-2B66-4579-9CCD-32CFF73BFBD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{222098EB-2B66-4579-9CCD-32CFF73BFBD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7FBF5A2-1376-4025-BC40-72B41AB7DB60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7FBF5A2-1376-4025-BC40-72B41AB7DB60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7FBF5A2-1376-4025-BC40-72B41AB7DB60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7FBF5A2-1376-4025-BC40-72B41AB7DB60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DF80019-6CEB-4189-87E3-C97F935609C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DF80019-6CEB-4189-87E3-C97F935609C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DF80019-6CEB-4189-87E3-C97F935609C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DF80019-6CEB-4189-87E3-C97F935609C3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

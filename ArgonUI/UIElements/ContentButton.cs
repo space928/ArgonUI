@@ -1,4 +1,5 @@
 ﻿using ArgonUI.Drawing;
+using ArgonUI.SourceGenerator;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,34 +10,16 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
-public class ContentButton : ElementPresenterBase
+public partial class ContentButton : ElementPresenterBase
 {
-    private Vector4 colour;
-    private float rounding;
-
     /// <summary>
     /// The colour of this button.
     /// </summary>
-    public Vector4 Colour
-    {
-        get => colour; set
-        {
-            UpdateProperty(ref colour, value);
-            Dirty(DirtyFlags.Content);
-        }
-    }
-
+    [Reactive, Dirty(DirtyFlags.Content)] private Vector4 colour;
     /// <summary>
     /// The radius of the corners of this button.
     /// </summary>
-    public float Rounding
-    {
-        get => rounding; set
-        {
-            UpdateProperty(ref rounding, value);
-            Dirty(DirtyFlags.Content);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Content)] private float rounding;
 
     protected internal override void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands)
     {

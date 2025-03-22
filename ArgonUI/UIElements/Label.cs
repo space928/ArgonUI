@@ -1,4 +1,5 @@
 ﻿using ArgonUI.Drawing;
+using ArgonUI.SourceGenerator;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,27 +9,25 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
-public class Label : UIElement
+public partial class Label : UIElement
 {
-    private string? text;
-    private float size;
-    private BMFont? font;
-    private Vector4 colour;
-
-    public override int DesiredWidth => (int)Font.Measure(text, size).X;
-    public override int DesiredHeight => (int)Font.Measure(text, size).Y;
-
     /// <summary>
     /// The text represented by this label.
     /// </summary>
-    public string? Text
-    {
-        get => text; set
-        {
-            UpdateProperty(ref text, value);
-            Dirty(DirtyFlags.Content | DirtyFlags.Layout);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Layout)] protected string? text;
+    /// <summary>
+    /// The font size of this label.
+    /// </summary>
+    [Reactive("FontSize"), Dirty(DirtyFlags.Layout)] protected float size;
+    /// <summary>
+    /// The text colour of this label.
+    /// </summary>
+    [Reactive("TextColour"), Dirty(DirtyFlags.Layout)] protected Vector4 colour;
+
+    protected BMFont? font;
+
+    public override int DesiredWidth => (int)Font.Measure(text, size).X;
+    public override int DesiredHeight => (int)Font.Measure(text, size).Y;
 
     /// <summary>
     /// The font used by this label.
@@ -38,30 +37,6 @@ public class Label : UIElement
         get => font ?? Fonts.Default; set
         {
             UpdateProperty(ref font, value);
-            Dirty(DirtyFlags.Content | DirtyFlags.Layout);
-        }
-    }
-
-    /// <summary>
-    /// The font size of this label.
-    /// </summary>
-    public float FontSize
-    {
-        get => size; set
-        {
-            UpdateProperty(ref size, value);
-            Dirty(DirtyFlags.Content | DirtyFlags.Layout);
-        }
-    }
-
-    /// <summary>
-    /// The text colour of this label.
-    /// </summary>
-    public Vector4 TextColour
-    {
-        get => colour; set
-        {
-            UpdateProperty(ref colour, value);
             Dirty(DirtyFlags.Content | DirtyFlags.Layout);
         }
     }
