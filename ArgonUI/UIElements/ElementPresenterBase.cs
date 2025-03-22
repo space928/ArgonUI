@@ -63,7 +63,8 @@ public abstract class ElementPresenterBase : UIElement, IContainer
 
     public void InsertChild(UIElement child, int index)
     {
-        ArgumentOutOfRangeException.ThrowIfNotEqual(index, 0);
+        if (index != 0)
+            throw new ArgumentOutOfRangeException(nameof(index), "Insertion index must be 0");
         Content = child;
     }
 

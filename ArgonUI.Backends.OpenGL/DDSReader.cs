@@ -21,7 +21,11 @@ public static class DDSReader
             throw new DDSException($"File magic 0x{magic:X8} does not magic DDS magic number!");
 
         // Read header
+#if NETSTANDARD
+        var headerSpan = MemoryMarshal.AsBytes(PolyFill.CreateSpan(ref dds.header, 1));
+#else
         var headerSpan = MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref dds.header, 1));
+#endif
         stream.ReadExactly(headerSpan);
         if (dds.header.size != Unsafe.SizeOf<DDSHeader>()
             || dds.header.ddspf.size != Unsafe.SizeOf<DDSPixelFormat>())
@@ -31,7 +35,11 @@ public static class DDSReader
         if ((dds.header.ddspf.flags & DDSPixelFormatFlags.DDPF_FOURCC) != 0
             && dds.header.ddspf.fourCC == DDSFourCC.DX10)
         {
+#if NETSTANDARD
+            var extHeaderSpan = MemoryMarshal.AsBytes(PolyFill.CreateSpan(ref dds.dx10Header, 1));
+#else
             var extHeaderSpan = MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref dds.dx10Header, 1));
+#endif
             stream.ReadExactly(extHeaderSpan);
         }
 

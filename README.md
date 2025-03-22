@@ -7,8 +7,9 @@
 [![Build Status](https://github.com/space928/ArgonUI/actions/workflows/dotnet.yml/badge.svg?branch=main)](https://github.com/space928/ArgonUI/actions/workflows/dotnet.yml)
 [![Build Status](https://github.com/space928/ArgonUI/actions/workflows/docs.yml/badge.svg?branch=main)](https://space928.github.io/ArgonUI/)
 [![GitHub License](https://img.shields.io/github/license/space928/ArgonUI)](https://github.com/space928/ArgonUI/blob/main/LICENSE.txt)
-[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/space928/ArgonUI/total)](https://github.com/space928/ArgonUI/releases)
 [![Nuget](https://img.shields.io/nuget/v/ArgonUI?logo=Nuget&logoColor=fff)](https://www.nuget.org/packages/ArgonUI/)
+![NuGet Downloads](https://img.shields.io/nuget/dt/ArgonUI)
+
 
 
 ArgonUI is a fast cross-platform UI framework for .NET. It aims to aims to provide a fast and flexible UI 
@@ -20,7 +21,7 @@ framework, without all of the boilerplate.
  - Support for multiple rendering backends
    - Efficient OpenGL based rendering backend
  - Event driven rendering, means elements or only rendered when they change
- - Flexbile control styling system
+ - Flexible control styling system
  - Data binding
 
  <!--![Application screenshot](https://github.com/space928/QPlayer/assets/15130114/1a63eaaa-2c13-48e4-be0e-e33b5921bb41)-->

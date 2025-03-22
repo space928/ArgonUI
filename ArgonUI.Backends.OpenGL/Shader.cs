@@ -73,8 +73,13 @@ public partial class Shader : IDisposable
 
     public void SetUniform(string name, Matrix4x4 value, bool silentFail = true)
     {
+#if NETSTANDARD
         if (GetLocation(out int location, name, silentFail))
-            gl.UniformMatrix4(location, 1, false, MemoryMarshal.Cast<Matrix4x4, float>(MemoryMarshal.CreateReadOnlySpan(in value, 1)));
+            gl.UniformMatrix4(location, 1, false, MemoryMarshal.Cast<Matrix4x4, float>(PolyFill.CreateReadOnlySpan(ref value, 1)));
+#else
+        if (GetLocation(out int location, name, silentFail))
+            gl.UniformMatrix4(location, 1, false, MemoryMarshal.Cast<Matrix4x4, float>(MemoryMarshal.CreateReadOnlySpan(ref value, 1)));
+#endif
     }
 
     public void SetUniform(string name, float value, bool silentFail = true)
@@ -146,17 +151,26 @@ public partial class Shader : IDisposable
             return source;
 
         StringBuilder sb = new(source.Length);
+#if !NETSTANDARD
         var versionStatement = FindVersionStatement().Match(source);
+#else
+        var versionStatement = Regex.Match(source, "#version.*");
+        var multilineRegex = new Regex("\\/\\*(\\*(?!\\/)|[^*])*\\*\\/", RegexOptions.Compiled);
+#endif
         if (versionStatement.Success)
         {
             // Need to insert defines after the #version and outside of any comments
             // Evil case: "/* foo */ #version 330 /* bar 
             //               baz */"
             var versionStart = versionStatement.Index;
-            var versionEnd = versionStart + versionStatement.Length + 1;
+            var versionEnd = versionStart + versionStatement.Value.Length + 1;
             sb.Append(source.AsSpan(0, versionEnd));
 
+#if !NETSTANDARD
             var multilineComments = FindMultilineComment().Match(source, versionStart);
+#else
+            var multilineComments = multilineRegex.Match(source, versionStart);
+#endif
             int end = versionEnd;
 
             while (multilineComments != null)
@@ -197,9 +211,11 @@ public partial class Shader : IDisposable
         return sb.ToString();
     }
 
+#if !NETSTANDARD
     [GeneratedRegex("#version.*")]
     private static partial Regex FindVersionStatement();
 
     [GeneratedRegex("\\/\\*(\\*(?!\\/)|[^*])*\\*\\/")]
     private static partial Regex FindMultilineComment();
+#endif
 }

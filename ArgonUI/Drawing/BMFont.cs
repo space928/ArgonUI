@@ -136,7 +136,7 @@ public class BMFont : Font
 
         Vector2 measure = Vector2.Zero;
         float fontSize = size / Size;
-        foreach (char c in str)
+        foreach (char c in str!)
         {
             var cDef = charsDictFrozen[c];
             // TODO: Doesn't account for yOffset
@@ -558,9 +558,20 @@ public struct BMFontChar
                 encoding = Encoding.GetEncoding(charset!);
             }
             catch { }
+#if NETSTANDARD
+            unsafe
+            {
+                fixed (int* bytes = &id)
+                fixed (char* chr = &character)
+                {
+                    encoding.GetChars((byte*)bytes, sizeof(int), chr, 1);
+                }
+            }
+#else
             var bytes = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref id, 1));
             var chars = MemoryMarshal.CreateSpan(ref character, 1);
             encoding.TryGetChars(bytes, chars, out int _);
+#endif
         }
     }
 }

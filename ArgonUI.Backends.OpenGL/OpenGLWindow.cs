@@ -12,6 +12,7 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using MouseButton = ArgonUI.Input.MouseButton;
 
@@ -124,7 +125,16 @@ public class OpenGLWindow : UIWindow
             {
                 if ((uint)severity == (uint)DebugSeverity.DebugSeverityNotification)
                     return;
+#if NETSTANDARD
+                var msg = string.Empty;
+                unsafe
+                {
+                    if (message != 0 && length > 0)
+                        msg = Encoding.UTF8.GetString((byte*)message, length);
+                }
+#else
                 string msg = Marshal.PtrToStringUTF8(message, length);
+#endif
                 Debug.WriteLine($"[GL_Debug] [{(DebugSeverity)severity}] [{(DebugType)type}] {msg}");
 
                 //if ((uint)severity == (uint)DebugSeverity.DebugSeverityHigh)
