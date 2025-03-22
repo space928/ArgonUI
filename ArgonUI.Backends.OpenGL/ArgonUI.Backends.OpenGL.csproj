@@ -34,7 +34,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.0|AnyCPU'">
-    <DefineConstants>$(DefineConstants);DEBUG_LATENCY</DefineConstants>
+    <!--<DefineConstants>$(DefineConstants);DEBUG_LATENCY</DefineConstants>-->
   </PropertyGroup>
 
   <ItemGroup>

@@ -32,6 +32,7 @@ public class OpenGLWindow : UIWindow
     private readonly CancellationTokenSource isClosingTokenSource;
     private readonly CancellationToken isClosingToken;
     private readonly BlockingCollection<InputEvent> inputEvents;
+    private volatile int redrawRequested;
 
     public override string Title
     {
@@ -160,13 +161,27 @@ public class OpenGLWindow : UIWindow
         CreateWindow(title);
         //nativeWnd?.Run();
         nativeWnd?.Initialize();
+        nativeWnd?.DoEvents();
         while ((!nativeWnd?.IsClosing) ?? true)
         {
-            //nativeWnd?.ContinueEvents();
-            //shouldRenderEvent?.Wait(200, isClosingToken);
-            //shouldRenderEvent?.Reset();
+#if DEBUG_LATENCY
+            LogLatency(DateTime.UtcNow.Ticks, "UI frame start");
+            if (Interlocked.CompareExchange(ref redrawRequested, 0, 1) == 1)
+                nativeWnd?.DoRender();
+            LogLatency(DateTime.UtcNow.Ticks, "UI events start");
             nativeWnd?.DoEvents();
-            nativeWnd?.DoRender();
+            LogLatency(DateTime.UtcNow.Ticks, "UI end");
+#else
+            // Don't redraw the frame unless the UI engine requests it
+            // This is very important in reducing rendering latency,
+            // since otherwise, we need to wait for the previous frames
+            // to finish drawing before a frame with updated data can be
+            // drawn.
+            if (Interlocked.CompareExchange(ref redrawRequested, 0, 1) == 1)
+                nativeWnd?.DoRender();
+            // Wait for events, this can be cancelled if a redraw is requested
+            nativeWnd?.DoEvents();
+#endif
         }
     }
 
@@ -186,12 +201,20 @@ public class OpenGLWindow : UIWindow
                         OnKeyUp(this, evnt.key);
                         break;
                     case InputEventType.MouseDown:
+#if DEBUG_LATENCY
+                        dbg_latencyStartTime = DateTime.UtcNow.Ticks;
+#endif
                         OnMouseDown(this, evnt.button);
                         break;
                     case InputEventType.MouseUp:
                         OnMouseUp(this, evnt.button);
                         break;
                     case InputEventType.MouseMove:
+#if DEBUG_LATENCY
+                        var nt = DateTime.UtcNow.Ticks;
+                        if (nt - dbg_latencyStartTime > 10000000)
+                            dbg_latencyStartTime = nt;
+#endif
                         OnMouseMove(this, new((int)evnt.pos.X, (int)evnt.pos.Y));
                         break;
                     case InputEventType.MouseScroll:
@@ -205,6 +228,22 @@ public class OpenGLWindow : UIWindow
             }
         } catch (OperationCanceledException) { }
     }
+
+#if DEBUG_LATENCY
+    private long dbg_latencyStartTime = 0;
+    private long dbg_latencyLast = 0;
+
+    public void LogLatency(long endTime, string endState)
+    {
+        var diff = endTime - dbg_latencyStartTime;
+        if (diff > 10000000)
+            return;
+        TimeSpan ts = new(diff);
+        TimeSpan delta = new(diff - dbg_latencyLast);
+        dbg_latencyLast = diff;
+        Debug.WriteLine($"[LatencyDebug] Event start to {endState} time: {ts.TotalMilliseconds:F2} ms (delta: {delta.TotalMilliseconds:F2} ms)");
+    }
+#endif
 
     public override void Dispose()
     {
@@ -241,6 +280,7 @@ public class OpenGLWindow : UIWindow
 
     public override void RequestRedraw()
     {
+        redrawRequested = 1;
         nativeWnd?.ContinueEvents();
     }
 

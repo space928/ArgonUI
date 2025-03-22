@@ -37,6 +37,10 @@
 		<NoWarn>1701;1702;1591</NoWarn>
   </PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.0|AnyCPU'">
+		<!--<DefineConstants>$(DefineConstants);DEBUG_LATENCY</DefineConstants>-->
+	</PropertyGroup>
+
   <ItemGroup>
     <None Remove="Fonts\NotoSans-SemiBold.fnt" />
     <None Remove="Fonts\notosans.png" />

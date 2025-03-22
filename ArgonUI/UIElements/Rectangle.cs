@@ -1,4 +1,5 @@
 ﻿using ArgonUI.Drawing;
+using ArgonUI.SourceGenerator;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,38 +9,29 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
-public class Rectangle : UIElement
+public partial class Rectangle : UIElement
 {
-    private Vector4 colour;
-    private float rounding;
-
     /// <summary>
     /// The colour of this rectangle.
     /// </summary>
-    public Vector4 Colour
-    {
-        get => colour; set
-        {
-            UpdateProperty(ref colour, value);
-            Dirty(DirtyFlags.Content);
-        }
-    }
-
+    [Reactive, Dirty(DirtyFlags.Content)] private Vector4 colour;
     /// <summary>
     /// The radius of the corners of this rectangle.
     /// </summary>
-    public float Rounding
-    {
-        get => rounding; set
-        {
-            UpdateProperty(ref rounding, value);
-            Dirty(DirtyFlags.Content);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Content)] private float rounding;
+
+#if DEBUG_LATENCY
+    public bool logLatencyNow;
+#endif
 
     protected internal override void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands)
     {
         commands.Clear();
         commands.Add(ctx => ctx.DrawRect(bounds, Colour, Rounding));
+#if DEBUG_LATENCY
+        if (logLatencyNow)
+            commands.Add(ctx => ctx.MarkLatencyTimerEnd($"{Colour.Y}"));
+        logLatencyNow = false;
+#endif
     }
 }

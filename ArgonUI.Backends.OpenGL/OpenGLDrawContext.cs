@@ -37,6 +37,17 @@ internal class OpenGLDrawContext : IDrawContext
         vertBuff = new uint[4096];
     }
 
+#if DEBUG_LATENCY || DEBUG
+    internal bool dbg_latencyTimerEnd;
+    internal string? dbg_latencyMsg;
+
+    public void MarkLatencyTimerEnd(string? msg = null)
+    {
+        dbg_latencyTimerEnd = true;
+        dbg_latencyMsg = msg;
+    }
+#endif
+
     public void InitRenderer(UIWindow window)
     {
         this.window = window;
@@ -102,6 +113,17 @@ internal class OpenGLDrawContext : IDrawContext
     public void EndFrame()
     {
         Texture2DLoader.LoadTextureResults(gl);
+
+#if DEBUG_LATENCY
+        if (dbg_latencyTimerEnd)
+        {
+            dbg_latencyTimerEnd = false;
+            var timeEnd = DateTime.UtcNow.Ticks;
+
+            ((OpenGLWindow)window!).LogLatency(timeEnd, $"end of frame ({dbg_latencyMsg})");
+            dbg_latencyMsg = null;
+        }
+#endif
     }
 
     public void Clear(Vector4 colour)
@@ -196,7 +218,7 @@ internal class OpenGLDrawContext : IDrawContext
     public void DrawChar(Bounds2D bounds, float size, char c, BMFont font, Vector4 colour)
     {
         float fontSize = size / font.Size;
-        DrawCharInternal(bounds.topLeft, fontSize, 0.5f, font.FontTexture?.TextureHandle, font.CharsDict[c], colour);
+        DrawCharInternal(bounds.topLeft, fontSize, 0, 0.5f, 1, font.FontTexture?.TextureHandle, font.CharsDict[c], colour);
     }
 
     public void DrawText(Bounds2D bounds, float size, string s, BMFont font, Vector4 colour)
@@ -210,13 +232,39 @@ internal class OpenGLDrawContext : IDrawContext
             var cDef = dict[c];
             if (bounds.topLeft.X /*+ cDef.xAdvance * fontSize*/ > bounds.bottomRight.X)
                 break;
-            float adv = DrawCharInternal(in bounds.topLeft, fontSize, 0.5f, tex, in cDef, in colour);
+            float adv = DrawCharInternal(in bounds.topLeft, fontSize, 0, 0.5f, 1, tex, in cDef, in colour);
             bounds.topLeft.X += adv;
         }
     }
 
-    private float DrawCharInternal(in Vector2 pos, float size, float weight, ITextureHandle? texture, in BMFontChar c, in Vector4 colour)
+    public void DrawText(Bounds2D bounds, float size, string s, BMFont font, Vector4 colour, 
+        float wordSpacing = 0, float charSpacing = 0, float skew = 0, float weight = 0.5F, float width = 1)
     {
+        var tex = font.FontTexture?.TextureHandle;
+        var dict = font.CharsDict;
+        //float initialX = bounds.topLeft.X;
+        float fontSize = size / font.Size;
+        foreach (var c in s)
+        {
+            //if (char.IsWhiteSpace(c))
+            if (wordSpacing != 0 && c == ' ')
+            {
+                // TODO: Support different sized spaces
+                bounds.topLeft.X += wordSpacing;
+                continue;
+            }
+
+            var cDef = dict[c];
+            if (bounds.topLeft.X > bounds.bottomRight.X)
+                break;
+            float adv = DrawCharInternal(in bounds.topLeft, fontSize, skew, weight, width, tex, in cDef, in colour);
+            bounds.topLeft.X += adv + charSpacing;
+        }
+    }
+
+    private float DrawCharInternal(in Vector2 pos, float size, float skew, float weight, float width, ITextureHandle? texture, in BMFontChar c, in Vector4 colour)
+    {
+        // TODO: Implement text rendering skew
         if (vertBuff.Length - vertPos < Unsafe.SizeOf<CharVert>() * 4)
             FlushBatch();
 
@@ -230,6 +278,7 @@ internal class OpenGLDrawContext : IDrawContext
         {
             FlushBatch();
             activeShader = textShader;
+            textShader?.Use();
             textShader?.SetUniform("uFontTex", 0);
             vao?.Bind();
             vao?.VertexAttributePointer(0, 2, VertexAttribType.Float, 9, 0);
@@ -246,8 +295,9 @@ internal class OpenGLDrawContext : IDrawContext
             tex.Bind(0);
         }
 
-        float x0 = pos.X + c.xOffset * size;
-        float x1 = pos.X + (c.xOffset + c.width) * size;
+        float size_x = size * width;
+        float x0 = pos.X + c.xOffset * size_x;
+        float x1 = pos.X + (c.xOffset + c.width) * size_x;
         float y0 = pos.Y + c.yOffset * size;
         float y1 = pos.Y + (c.yOffset + c.height) * size;
         Vector2 texScale = new(1f / activeTexture.Width, 1f / activeTexture.Height);
@@ -263,7 +313,7 @@ internal class OpenGLDrawContext : IDrawContext
         DrawRectVert(new(x0, y0), colour, new(uv_x0, uv_y0, weight));
         DrawRectVert(new(x1, y0), colour, new(uv_x1, uv_y0, weight));
 
-        return c.xAdvance * size;
+        return c.xAdvance * size_x;
 
         void DrawRectVert(in Vector2 pos, in Vector4 colour, in Vector3 chData)
         {
@@ -290,6 +340,7 @@ internal class OpenGLDrawContext : IDrawContext
         {
             FlushBatch();
             activeShader = textureShader;
+            textureShader?.Use();
             textureShader?.SetUniform("uMainTex", 0);
             vao?.Bind();
             vao?.VertexAttributePointer(0, 2, VertexAttribType.Float, 11, 0);

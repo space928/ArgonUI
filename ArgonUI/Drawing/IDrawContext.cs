@@ -63,6 +63,23 @@ public interface IDrawContext : IDisposable
     /// <param name="colour">The colour to draw the text in.</param>
     public void DrawText(Bounds2D bounds, float size, string s, BMFont font, Vector4 colour);
     /// <summary>
+    /// Draws a string of text within the specified bounds.
+    /// </summary>
+    /// <param name="bounds">The bounds in which this string should be drawn.
+    /// Overflowing text will be truncated.</param>
+    /// <param name="size">The font size to render the text with.</param>
+    /// <param name="s">The string to draw.</param>
+    /// <param name="font">The font to draw the string with.</param>
+    /// <param name="colour">The colour to draw the text in.</param>
+    /// <param name="wordSpacing">The space between words, represented by the size of the space character in pixels.</param>
+    /// <param name="charSpacing">An adjustment to the space between individual characters in pixels.</param>
+    /// <param name="skew">The horizontal skew to apply to characters, useful for faux-italics.</param>
+    /// <param name="weight">The weight to render the characters with, where 0.5 
+    /// represents the font's native weight. Values close to 0 or 1 are likely to show visual artifacts.</param>
+    /// <param name="width">A width scale factor to stretch the font. A value of 1 represents no stretching.</param>
+    public void DrawText(Bounds2D bounds, float size, string s, BMFont font, Vector4 colour, 
+        float wordSpacing = 0, float charSpacing = 0, float skew = 0, float weight = 0.5f, float width = 1);
+    /// <summary>
     /// Draws a single character within the specified bounds.
     /// </summary>
     /// <param name="bounds">The bounds in which this char should be drawn.</param>
@@ -94,4 +111,8 @@ public interface IDrawContext : IDisposable
 
     public ITextureHandle LoadTexture(TextureData data, string? name = null,
         TextureCompression compression = TextureCompression.Unknown);
+
+#if DEBUG_LATENCY
+    public void MarkLatencyTimerEnd(string? msg = null);
+#endif
 }

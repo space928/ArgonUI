@@ -1,9 +1,7 @@
 ﻿using ArgonUI.Drawing;
 using ArgonUI.Input;
-using System.ComponentModel;
 using System.Numerics;
 using System;
-using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 
 namespace ArgonUI.UIElements;
@@ -157,8 +155,11 @@ public abstract class UIElement : ReactiveObject
     /// </summary>
     public Bounds2D RenderedBoundsAbsolute { get => renderedBoundsAbsolute; protected set => renderedBoundsAbsolute = value; }
     /// <summary>
-    /// 
+    /// Gets the dirty flags of this element which determine if the element needs to be re-rendered or re-laid out.
     /// </summary>
+    /// <remarks>
+    /// Use the <see cref="Dirty(DirtyFlags)"/> and <see cref="ClearDirtyFlag(DirtyFlags)"/> methods to set the dirty flags.
+    /// </remarks>
     public DirtyFlags DirtyFlags { get => dirtyFlag; protected internal set => dirtyFlag = value; }
     /// <summary>
     /// Gets the width of the element when using automatic sizing.
@@ -221,6 +222,7 @@ public abstract class UIElement : ReactiveObject
     /// <summary>
     /// Marks this element as dirty, forcing the UI engine to redraw this element and it's children when it's next dispatched.
     /// </summary>
+    /// <param name="flags">Which <see cref="ArgonUI.UIElements.DirtyFlags"/> to set.</param>
     public virtual void Dirty(DirtyFlags flags)
     {
         UpdateProperty(ref dirtyFlag, dirtyFlag | flags, nameof(DirtyFlags));
@@ -236,18 +238,28 @@ public abstract class UIElement : ReactiveObject
     /// <summary>
     /// Clears the given dirty flags from the UI element.
     /// </summary>
-    /// <param name="flags"></param>
+    /// <param name="flags">Which <see cref="ArgonUI.UIElements.DirtyFlags"/> to clear.</param>
     public virtual void ClearDirtyFlag(DirtyFlags flags)
     {
         dirtyFlag &= ~flags;
+    }
+
+    /// <summary>
+    /// Checks if the given point overlaps this element.
+    /// </summary>
+    /// <param name="pos">The point in screen space pixels to test.</param>
+    /// <returns><see langword="true"/> if given point is on this element.</returns>
+    public virtual bool HitTest(in Vector2 pos)
+    {
+        return renderedBoundsAbsolute.Contains(pos);
     }
 
     // Internal
     /// <summary>
     /// Computes the bounds that this element occupies given the bounds of it's parent.
     /// </summary>
-    /// <param name="parent"></param>
-    /// <returns></returns>
+    /// <param name="parent">The bounds of the parent element.</param>
+    /// <returns>The bounds occupied by this element in screen space.</returns>
     protected virtual Bounds2D ComputeBounds(Bounds2D parent)
     { 
         // Apply limits to the width and height
@@ -380,14 +392,4 @@ public enum Alignment
     Bottom = Right,
     Start = Left,
     End = Right
-}
-
-[Flags]
-public enum DirtyFlags
-{
-    None,
-    Layout = 1 << 0,
-    Content = 1 << 1,
-    ChildContent = 1 << 2,
-    ChildLayout = 1 << 3
 }

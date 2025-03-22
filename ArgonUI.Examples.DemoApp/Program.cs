@@ -23,12 +23,22 @@ public class Program
         rect.Colour = new(0, .8f, .25f, 1);
         rect.OnMouseDown += () =>
         {
+#if DEBUG_LATENCY
+            ((OpenGLWindow)wnd).LogLatency(DateTime.UtcNow.Ticks, "rect OnMouseDown");
+            rect.logLatencyNow = true;
+            rect.Colour = (counter & 1) == 0 ? new(1, 0, 0, 1) : new(0, 0, 1, 1);
+#endif
             //rect.Dirty(DirtyFlags.Content);
             //Console.WriteLine("Rectangle clicked!");
             label.Text = $"Hello World! {counter++}";
         };
         rect.OnMouseEnter += () =>
         {
+#if DEBUG_LATENCY
+            ((OpenGLWindow)wnd).LogLatency(DateTime.UtcNow.Ticks, "rect OnMouseEnter");
+            rect.logLatencyNow = true;
+#endif
+
             rect.Colour = new(1f, .5f, .1f, 1);
             rect.Rounding = 20;
         };

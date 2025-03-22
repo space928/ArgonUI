@@ -13,12 +13,21 @@ public abstract class ReactiveObject : INotifyPropertyChanged, INotifyPropertyCh
     public event PropertyChangingEventHandler? PropertyChanging;
 
     /// <summary>
+    /// Invokes the <see cref="PropertyChanging"/> event.
+    /// </summary>
+    /// <param name="propName">The property name. (Automatic when called from a property setter)</param>
+    protected void OnChanging([CallerMemberName] string? propName = null)
+    {
+        PropertyChanging?.Invoke(this, new(propName));
+    }
+
+    /// <summary>
     /// Invokes the <see cref="PropertyChanged"/> event.
     /// </summary>
     /// <param name="propName">The property name. (Automatic when called from a property setter)</param>
     protected void OnChanged([CallerMemberName] string? propName = null)
     {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
+        PropertyChanged?.Invoke(this, new(propName));
     }
 
     /// <summary>
