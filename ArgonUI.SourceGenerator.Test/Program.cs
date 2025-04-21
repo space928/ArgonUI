@@ -11,7 +11,7 @@ internal class Program
     }
 }
 
-internal partial class ReactiveTest : UIElement
+public partial class ReactiveTest : UIElement
 {
     [Reactive("SpecialExample")] private int exampleValue;
     [Reactive(propName: "SpecialExample1")] private int exampleValue1;
@@ -20,14 +20,14 @@ internal partial class ReactiveTest : UIElement
     /// <summary>
     /// An example property.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), CustomSet(nameof(SetTest4))] private float test4;
+    [Reactive, Dirty(DirtyFlags.Layout), CustomSet(nameof(SetTest4)), Stylable] private float test4;
     /// <summary>
     /// A vector example.
     /// </summary>
     /// <remarks>
     /// Very dimensional.
     /// </remarks>
-    [Reactive] private Vector2 testVec;
+    [Reactive, Stylable] private Vector2 testVec;
 
     public void Test()
     {
@@ -38,13 +38,21 @@ internal partial class ReactiveTest : UIElement
         Test3 = 1;
         Test4 = 2;
         TestVec = new Vector2();
+        ReactiveTest_Styles.SpecialExample(1);
+        Test_Styles.Test4(1);
     }
 
     private float GetTest3() => 1;
     private void SetTest4(float value) => test4 = value;
 }
 
-internal abstract class UIElement : ReactiveObject
+[MergeStyles("ArgonUI.SourceGenerator.Test")]
+internal static partial class Test_Styles
+{ }
+
+//internal static partial class ReactiveTest_Styles { }
+
+public abstract class UIElement : ReactiveObject
 {
     private DirtyFlags dirtyFlag;
 

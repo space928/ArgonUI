@@ -11,7 +11,10 @@
   <ItemGroup>
     <Compile Include="..\ArgonUI\ReactiveObject.cs" Link="ReactiveObject.cs" />
     <Compile Include="..\ArgonUI\SourceGenerator\DirtyAttribute.cs" Link="DirtyAttribute.cs" />
+    <Compile Include="..\ArgonUI\SourceGenerator\GeneratedStylesAttribute.cs" Link="GeneratedStylesAttribute.cs" />
+    <Compile Include="..\ArgonUI\SourceGenerator\MergeStylesAttribute.cs" Link="MergeStylesAttribute.cs" />
     <Compile Include="..\ArgonUI\SourceGenerator\ReactiveAttribute.cs" Link="ReactiveAttribute.cs" />
+    <Compile Include="..\ArgonUI\SourceGenerator\StylableAttribute.cs" Link="StylableAttribute.cs" />
     <Compile Include="..\ArgonUI\UIElements\DirtyFlags.cs" Link="DirtyFlags.cs" />
   </ItemGroup>
 

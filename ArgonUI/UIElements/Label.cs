@@ -18,11 +18,11 @@ public partial class Label : UIElement
     /// <summary>
     /// The font size of this label.
     /// </summary>
-    [Reactive("FontSize"), Dirty(DirtyFlags.Layout)] protected float size;
+    [Reactive("FontSize"), Dirty(DirtyFlags.Layout), Stylable] protected float size;
     /// <summary>
     /// The text colour of this label.
     /// </summary>
-    [Reactive("TextColour"), Dirty(DirtyFlags.Layout)] protected Vector4 colour;
+    [Reactive("TextColour"), Dirty(DirtyFlags.Layout), Stylable] protected Vector4 colour;
 
     protected BMFont? font;
 

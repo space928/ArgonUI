@@ -2,8 +2,8 @@
   "profiles": {
     "ArgonUI.SourceGenerator": {
       "commandName": "DebugRoslynComponent",
-      //"targetProject": "..\\ArgonUI.SourceGenerator.Test\\ArgonUI.SourceGenerator.Test.csproj"
-      "targetProject": "..\\ArgonUI\\ArgonUI.csproj"
+      "targetProject": "..\\ArgonUI.SourceGenerator.Test\\ArgonUI.SourceGenerator.Test.csproj"
+      //"targetProject": "..\\ArgonUI\\ArgonUI.csproj"
     }
   }
 }

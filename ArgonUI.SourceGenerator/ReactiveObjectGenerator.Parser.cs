@@ -40,10 +40,11 @@ public partial class ReactiveObjectGenerator
                 }
 
                 // Check that the class derives from ReactiveObject
-                bool isReactive = false;
-                bool isUIElement = false;
+                
+                bool isUIElement = classSymbol.Name == "ReactiveObject";
+                bool isReactive = isUIElement;
                 var parent = classSymbol;
-                while ((parent = parent.BaseType) != null)
+                while (!isReactive && (parent = parent.BaseType) != null)
                 {
                     // TODO: Evil magic strings, not safe from refactoring
                     if (parent.Name == "UIElement")
@@ -79,6 +80,9 @@ public partial class ReactiveObjectGenerator
                     string? docComment = reactiveNode.TargetSymbol.GetDocumentationCommentXml();
                     string? getFunc = null;
                     string? setAction = null;
+                    bool getInline = false;
+                    bool setInline = false;
+                    StylableField? stylable = null;
                     var dirtyFlags = DirtyFlags.None;
 
                     // Parse attributes
@@ -95,10 +99,14 @@ public partial class ReactiveObjectGenerator
                             case nameof(CustomGetAttribute):
                                 if (args.Length >= 1)
                                     getFunc = (string)args[0].Value!;
+                                if (args.Length >= 2)
+                                    getInline = (bool)args[1].Value!;
                                 break;
                             case nameof(CustomSetAttribute):
                                 if (args.Length >= 1)
                                     setAction = (string)args[0].Value!;
+                                if (args.Length >= 2)
+                                    setInline = (bool)args[1].Value!;
                                 break;
                             case nameof(DirtyAttribute):
                                 if (!isUIElement)
@@ -109,17 +117,21 @@ public partial class ReactiveObjectGenerator
                                 if (args.Length >= 1)
                                     dirtyFlags = (DirtyFlags)args[0].Value!;
                                 break;
+                            case nameof(StylableAttribute):
+                                stylable = new();
+                                break;
                             default:
                                 break;
                         }
                     }
 
-                    fields.Add(new(typeName, fieldName, propName, docComment, dirtyFlags, getFunc, setAction));
+                    fields.Add(new(typeName, fieldName, propName, docComment, dirtyFlags, getFunc, getInline, setAction, setInline, stylable));
                 }
 
                 ReactiveObjectClass reactiveObjectClass = new(
                     classSymbol.DeclaredAccessibility, 
                     classSymbol.ContainingNamespace.ToString(), 
+                    classSymbol.ContainingAssembly.Name,
                     classSymbol.Name,
                     enableNullable,
                     fields.DrainToImmutable().AsEquatable());
@@ -138,6 +150,9 @@ public partial class ReactiveObjectGenerator
     }
 
     public record ReactiveObjectResult(ReactiveObjectClass? Class, Diagnostic? Diagnostic);
-    public record ReactiveObjectClass(Accessibility Accessibility, string Namespace, string ClassName, bool EnableNullable, EquatableArray<ReactiveObjectField> ReactiveFields);
-    public record ReactiveObjectField(string FieldType, string FieldName, string PropName, string? DocComment, DirtyFlags DirtyFlags, string? OnGetFunc, string? OnSetAction);
+    public record ReactiveObjectClass(Accessibility Accessibility, string Namespace, string Assembly, string ClassName, 
+        bool EnableNullable, EquatableArray<ReactiveObjectField> ReactiveFields);
+    public record ReactiveObjectField(string FieldType, string FieldName, string PropName, string? DocComment, 
+        DirtyFlags DirtyFlags, string? OnGetFunc, bool GetInline, string? OnSetAction, bool SetInline, StylableField? Stylable);
+    public record StylableField();
 }

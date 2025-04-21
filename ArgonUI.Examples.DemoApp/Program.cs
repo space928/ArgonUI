@@ -1,6 +1,7 @@
 ﻿using ArgonUI;
 using ArgonUI.UIElements;
 using ArgonUI.Backends.OpenGL;
+using ArgonUI.Styling;
 
 namespace ArgonUI.Examples.DemoApp;
 
@@ -19,7 +20,7 @@ public class Program
         wnd.RootElement.BGColour = new(0, 0.5f, 1, 1);
         rect.Width = 100;
         rect.Height = 100;
-        rect.Rounding = 5;
+        rect.Rounding = 0;
         rect.Colour = new(0, .8f, .25f, 1);
         rect.OnMouseDown += () =>
         {
@@ -51,6 +52,13 @@ public class Program
         wnd.RootElement.AddChild(label);
         label.Text = "Hello World!";
         label.FontSize = 40;
+
+        wnd.RootElement.Style = new([
+            new Style([
+                ArgonUIStyles.Rounding(10),
+                ArgonUIStyles.FontSize(30),
+            ])
+        ]);
 
         wnd.Wait();
     }

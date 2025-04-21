@@ -14,11 +14,11 @@ public partial class Rectangle : UIElement
     /// <summary>
     /// The colour of this rectangle.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Content)] private Vector4 colour;
+    [Reactive, Dirty(DirtyFlags.Content), Stylable] private Vector4 colour;
     /// <summary>
     /// The radius of the corners of this rectangle.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Content)] private float rounding;
+    [Reactive, Dirty(DirtyFlags.Content), Stylable] private float rounding;
 
 #if DEBUG_LATENCY
     public bool logLatencyNow;

@@ -3,140 +3,94 @@ using ArgonUI.Input;
 using System.Numerics;
 using System;
 using System.Collections.Generic;
+using ArgonUI.Styling;
+using ArgonUI.SourceGenerator;
 
 namespace ArgonUI.UIElements;
 
 /// <summary>
 /// Represents the base class for all renderable UI elements in ArgonUI.
 /// </summary>
-public abstract class UIElement : ReactiveObject
+public abstract partial class UIElement : ReactiveObject, IDisposable
 {
     /// <summary>
     /// The name associated with this UIElement.
     /// </summary>
-    public string Name { get => name; set => UpdateProperty(ref name, value); }
+    [Reactive]
+    private string name = nameof(UIElement);
     /// <summary>
     /// Whether this element can receive keyboard focus.
     /// </summary>
-    public bool Focusable { get => focusable; set => UpdateProperty(ref focusable, value); }
-    //public Style style;
+    [Reactive]
+    private bool focusable = true;
+    /// <summary>
+    /// A set of stylable properties to be applied to this UIElement and it's decendants.
+    /// </summary>
+    [Reactive, CustomSet("this.style?.Unregister(this); value?.Register(this); this.style = value", true)]
+    private StyleSet? style;
     //public KeyBindingCollection keybinds;
     /// <summary>
     /// Gets the parent UIElement.
     /// </summary>
     public UIElement? Parent { get; internal set; }
+    /// <summary>
+    /// A list of string tags which can be used to store metadata about this element. 
+    /// These can also be used similar to HTML classes with a <see cref="Styling.Selectors.TagSelector"/>
+    /// to style elements selectivly based on their tags.
+    /// </summary>
+    public ObservableStringSet Tags { get; } = [];
 
     /// <summary>
     /// The absolute width of this element. Set to 0 to use automatic sizing.
     /// </summary>
-    public int Width
-    {
-        get => width; set
-        {
-            UpdateProperty(ref width, value);
-            Dirty(DirtyFlags.Layout);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Layout)]
+    private int width;
     /// <summary>
     /// The absolute height of this element. Set to 0 to use automatic sizing.
     /// </summary>
-    public int Height
-    {
-        get => height; set
-        {
-            UpdateProperty(ref height, value);
-            Dirty(DirtyFlags.Layout);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Layout)]
+    private int height;
     //public Vector2 Pivot { get => pivot; set => UpdateProperty(ref pivot, value); }
     /// <summary>
     /// How this element should be aligned vertically relative to it's parent.
     /// </summary>
-    public Alignment VerticalAlignment
-    {
-        get => verticalAlignment; set
-        {
-            UpdateProperty(ref verticalAlignment, value);
-            Dirty(DirtyFlags.Layout);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Layout)]
+    private Alignment verticalAlignment;
     /// <summary>
     /// How this element should be aligned horizontally relative to it's parent.
     /// </summary>
-    public Alignment HorizontalAlignment
-    {
-        get => horizontalAlignment; set
-        {
-            UpdateProperty(ref horizontalAlignment, value);
-            Dirty(DirtyFlags.Layout);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Layout)]
+    private Alignment horizontalAlignment;
     /// <summary>
     /// How much space (in pixels) to leave around each edge of the element relative to the parent. Specified as a vector of (Top, Right, Bottom, Left).
     /// </summary>
-    public Vector4 Margin
-    {
-        get => margin; set
-        {
-            UpdateProperty(ref margin, value);
-            Dirty(DirtyFlags.Layout);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Layout)]
+    private Vector4 margin;
     /// <summary>
     /// Controls which elements are shown on top of each other. Higher z-indexes will be shown on top.
     /// </summary>
-    public int ZIndex
-    {
-        get => zIndex; set
-        {
-            UpdateProperty(ref zIndex, value);
-            Dirty(DirtyFlags.Layout);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Layout)]
+    private int zIndex;
     /// <summary>
     /// The smallest width to shrink this element down to when using automatic sizing.
     /// </summary>
-    public int MinWidth
-    {
-        get => minWidth; set
-        {
-            UpdateProperty(ref minWidth, value);
-            Dirty(DirtyFlags.Layout);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Layout)]
+    private int minWidth = -1;
     /// <summary>
     /// The smallest height to shrink this element down to when using automatic sizing.
     /// </summary>
-    public int MinHeight
-    {
-        get => minHeight; set
-        {
-            UpdateProperty(ref minHeight, value);
-            Dirty(DirtyFlags.Layout);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Layout)]
+    private int minHeight = -1;
     /// <summary>
     /// The largest width to expand this element up to when using automatic sizing.
     /// </summary>
-    public int MaxWidth
-    {
-        get => maxWidth; set
-        {
-            UpdateProperty(ref maxWidth, value);
-            Dirty(DirtyFlags.Layout);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Layout)]
+    private int maxWidth = -1;
     /// <summary>
     /// The largest height to expand this element up to when using automatic sizing.
     /// </summary>
-    public int MaxHeight
-    {
-        get => maxHeight; set
-        {
-            UpdateProperty(ref maxHeight, value);
-            Dirty(DirtyFlags.Layout);
-        }
-    }
+    [Reactive, Dirty(DirtyFlags.Layout)]
+    private int maxHeight = -1;
 
     /// <summary>
     /// The rendered width of the element after it was last drawn. (Read-only)
@@ -169,24 +123,6 @@ public abstract class UIElement : ReactiveObject
     /// Gets the height of the element when using automatic sizing.
     /// </summary>
     public virtual int DesiredHeight => Height;
-
-    private string name = nameof(UIElement);
-    private bool focusable = true;
-    //public Style style;
-    //public KeyBindingCollection keybinds;
-
-    private int width;
-    private int height;
-    //private Vector2 pivot;
-    private Alignment verticalAlignment;
-    private Alignment horizontalAlignment;
-    private Vector4 margin;
-    private int zIndex;
-
-    private int minWidth = -1;
-    private int minHeight = -1;
-    private int maxWidth = -1;
-    private int maxHeight = -1;
 
     // Read only
     private float renderedWidth;
@@ -252,6 +188,11 @@ public abstract class UIElement : ReactiveObject
     public virtual bool HitTest(in Vector2 pos)
     {
         return renderedBoundsAbsolute.Contains(pos);
+    }
+
+    public void Dispose()
+    {
+        style?.Unregister(this);
     }
 
     // Internal

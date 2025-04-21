@@ -31,19 +31,12 @@ public readonly partial struct EquatableArray<T> : IReadOnlyList<T>, IList<T>, I
         this.elements = ImmutableCollectionsMarshal.AsArray(elements)!;
     }
 
-    public override bool Equals(object obj)
+    public EquatableArray(IEnumerable<T> elements)
     {
-        if (obj is EquatableArray<T> arr)
-            return Equals(arr);
-        return false;
-    }
-
-    public override int GetHashCode()
-    {
-        HashCode hash = new();
-        foreach (var element in elements)
-            hash.Add(element);
-        return hash.ToHashCode();
+        if (elements is T[] arr)
+            this.elements = arr;
+        else
+            this.elements = elements.ToArray();
     }
 
     public ImmutableArray<T> AsImmutableArray()
@@ -58,6 +51,21 @@ public readonly partial struct EquatableArray<T> : IReadOnlyList<T>, IList<T>, I
 
     public void CopyTo(T[] array, int arrayIndex) => elements.CopyTo(array, arrayIndex);
     public void CopyTo(Array array, int index) => elements.CopyTo(array, index);
+
+    public override bool Equals(object obj)
+    {
+        if (obj is EquatableArray<T> arr)
+            return Equals(arr);
+        return false;
+    }
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new();
+        foreach (var element in elements)
+            hash.Add(element);
+        return hash.ToHashCode();
+    }
 
     public bool Equals(EquatableArray<T> other)
     {
@@ -111,64 +119,18 @@ public readonly partial struct EquatableArray<T> : IReadOnlyList<T>, IList<T>, I
 
     #region Unsupported Operations
 
-    public void Add(T item)
-    {
-        throw new NotSupportedException();
-    }
+    public void Add(T item) => throw new NotSupportedException();
 
-    public int Add(object value)
-    {
-        throw new NotSupportedException();
-    }
-
-    public IImmutableList<T> AddRange(IEnumerable<T> items)
-    {
-        throw new NotSupportedException();
-    }
-
-    public void Clear()
-    {
-        throw new NotSupportedException();
-    }
-
-    public void Insert(int index, T item)
-    {
-        throw new NotSupportedException();
-    }
-
-    public void Insert(int index, object value)
-    {
-        throw new NotSupportedException();
-    }
-
-    public IImmutableList<T> InsertRange(int index, IEnumerable<T> items)
-    {
-        throw new NotSupportedException();
-    }
-    
-    public bool Remove(T item)
-    {
-        throw new NotSupportedException();
-    }
-
-    public void Remove(object value)
-    {
-        throw new NotSupportedException();
-    }
-
-    public IImmutableList<T> Remove(T value, IEqualityComparer<T>? equalityComparer)
-    {
-        throw new NotSupportedException();
-    }
-
-    public IImmutableList<T> RemoveAll(Predicate<T> match)
-    {
-        throw new NotSupportedException();
-    }
-
-    public void RemoveAt(int index)
-    {
-        throw new NotSupportedException();
-    }
+    public int Add(object value) => throw new NotSupportedException();
+    public IImmutableList<T> AddRange(IEnumerable<T> items) => throw new NotSupportedException();
+    public void Clear() => throw new NotSupportedException();
+    public void Insert(int index, T item) => throw new NotSupportedException();
+    public void Insert(int index, object value) => throw new NotSupportedException();
+    public IImmutableList<T> InsertRange(int index, IEnumerable<T> items) => throw new NotSupportedException();
+    public bool Remove(T item) => throw new NotSupportedException();
+    public void Remove(object value) => throw new NotSupportedException();
+    public IImmutableList<T> Remove(T value, IEqualityComparer<T>? equalityComparer) => throw new NotSupportedException();
+    public IImmutableList<T> RemoveAll(Predicate<T> match) => throw new NotSupportedException();
+    public void RemoveAt(int index) => throw new NotSupportedException();
     #endregion
 }

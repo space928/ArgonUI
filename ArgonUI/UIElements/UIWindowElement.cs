@@ -1,4 +1,5 @@
 ﻿using ArgonUI.Drawing;
+using ArgonUI.SourceGenerator;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,10 +11,14 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
-public class UIWindowElement : UIElement, IContainer
+public partial class UIWindowElement : UIElement, IContainer
 {
     private readonly List<UIElement> children;
-    private Vector4 colour;
+    /// <summary>
+    /// The background colour of this window.
+    /// </summary>
+    [Reactive("BGColour"), Dirty(DirtyFlags.Content), Stylable]
+    private Vector4 bgColour;
 
     public UIWindow Window { get; init; }
     public ReadOnlyCollection<UIElement> Children => new(children);
@@ -22,18 +27,6 @@ public class UIWindowElement : UIElement, IContainer
     public bool ClipContents { get; set; }
     //public override int DesiredWidth => Window.Size.x;
     //public override int DesiredHeight => Window.Size.y;
-
-    /// <summary>
-    /// The background colour of this window.
-    /// </summary>
-    public Vector4 BGColour
-    {
-        get => colour; set
-        {
-            UpdateProperty(ref colour, value);
-            Dirty(DirtyFlags.Content);
-        }
-    }
 
     internal UIWindowElement(UIWindow window)
     {
@@ -111,6 +104,6 @@ public class UIWindowElement : UIElement, IContainer
     protected internal override void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands)
     {
         commands.Clear();
-        commands.Add(ctx => ctx.Clear(colour));
+        commands.Add(ctx => ctx.Clear(bgColour));
     }
 }
