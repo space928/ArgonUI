@@ -22,7 +22,7 @@ public class Program
         rect.Height = 100;
         rect.Rounding = 0;
         rect.Colour = new(0, .8f, .25f, 1);
-        rect.OnMouseDown += () =>
+        rect.OnMouseDown += (im, button) =>
         {
 #if DEBUG_LATENCY
             ((OpenGLWindow)wnd).LogLatency(DateTime.UtcNow.Ticks, "rect OnMouseDown");
@@ -33,7 +33,7 @@ public class Program
             //Console.WriteLine("Rectangle clicked!");
             label.Text = $"Hello World! {counter++}";
         };
-        rect.OnMouseEnter += () =>
+        rect.OnMouseEnter += (im, pos) =>
         {
 #if DEBUG_LATENCY
             ((OpenGLWindow)wnd).LogLatency(DateTime.UtcNow.Ticks, "rect OnMouseEnter");
@@ -43,7 +43,7 @@ public class Program
             rect.Colour = new(1f, .5f, .1f, 1);
             rect.Rounding = 20;
         };
-        rect.OnMouseLeave += () =>
+        rect.OnMouseLeave += (im, pos) =>
         {
             rect.Colour = new(0, .8f, .25f, 1);
             rect.Rounding = 5;

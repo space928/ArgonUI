@@ -638,17 +638,152 @@ to make it easier to reapply parent styles. Does this make adding and removing s
 // the element tree every time.
 ```
 
-Is this really simpler than having elements pull properties from styles on draw?
+Is this really simpler than having elements pull properties from styles on draw? Well, no, at the 
+end of the day, elements need to know when they need to redraw based on changes to styles, and 
+working in this direction gives us these redraw notifications for 'free'.
+
+Considering all the update cases below the following data model makes sense:
+```cs
+class UIElement
+{
+	StyleSet Style;
+}
+
+enum TreeOperation
+{
+	Added,
+	Removed
+}
+
+class StyleSet
+{
+	List<UIElement> ControlledElements;
+	List<Style> Styles;
+
+	// Get UI Tree updates from ui elements.
+	// We care about updates that affect all elements directly under this style set and any updates 
+	// which affect the parent style set.
+	void OnTreeUpdate(UIElement target, TreeOperation op);
+}
+
+class Style
+{
+	ISelector Selector;
+	List<StylableProp> Props;
+
+	// If the selector rejects the majority of elements, then it makes sense to cache the 
+	// selected elements. 
+}
+
+class StylableProp
+{
+	int NameHash;
+}
+
+```
 
 #### Case 1A: StyleSet Added
+Apply all styles to all controlled elements (and children? or are the children added as controlled 
+elements?).
+
 #### Case 1B: StyleSet Removed
+When a styleset is removed it's likely many UI Elements will need to be updated. For this reason, 
+it makes sense if a `StyleSet` knows what it's parent `StyleSet` is (in a linked list kind of way).
+
+Working our way down the list of `StyleSet` in the hierarchy (from root to new leaf) apply each of 
+the style sets to the elements controlled by the old style set.
+
 #### Case 2A: Style Added
+Effectively the same as case 1A. 
+
+Depending on the cost of running the selector, it might make sense to cache the selected elements.
+
 #### Case 2B: Style Removed
+Effectively the same as case 1B except we then need to reapply the styles in the current style set
+as well. This could be made more effecient by ANDing the parent selectors with the just removed
+selectors, as we know those are the only elements which could have been touched.  
+Even better if we could also know which properties were touched, but that's probs too memory 
+intensive.
+
 #### Case 3A: Prop Added
+Effectively the same as 1A. We enumerate the selected elements and apply the property to each.
+
 #### Case 3B: Prop Removed
+We could do the effectively the same as 1B and traverse down the tree, re-applying styles.
+
+Or if we can quickly test for a property's membership in a style, then it might be faster to work
+our way up the tree until the property has been set. --> Yes, we can test this quickly, as we store
+the property name hash in the property.
+
 #### Case 3C: Prop Changed
+Effectively the same as 3A.
+
 #### Case 4A: UIElement Added
+Find this element's controlling style set by going up the tree. Register itself and it's children.
+Apply all the styles to itself and it's children.
+
+Selectors which depend on sibling order, may need to be rerun -> styles re-applied.
+
 #### Case 4B: UIElement Removed
+Unregister this element and it's children from the controlling UI element.
+
+Selectors which depend on sibling order, may need to be rerun -> styles re-applied.
+
+#### Case 4C: UIElement Moved/Grafted
+If a node is moved in the tree, or grafted (ie it's inserted as a none-leaf node) then this should
+be treated as a deletion and an insertion.
+
+```
+A
+|-> B
+|-> C
+|-> D
+    |-> E
+    |-> F
+        |-> G
+
+Move F under C: ==> Delete F -> Add F under C
+A
+|-> B
+|-> C
+    |-> F
+        |-> G
+|-> D
+    |-> E
+
+Move and insert B under D: ==> Delete B -> Delete E & F -> Add B under D -> Add E under B -> Addd F under B
+A
+|-> C
+|-> D
+    |-> B
+        |-> E
+        |-> F
+            |-> G
+```
+
+#### Case 5A: UIElement Property Changed
+Selectors depend on UIElement properties (such as tags). As such a selector should be able to 
+subscribe to ui element property changes (this also implies listening to ui tree changes) and
+trigger a style re-apply as needed.
+
+#### Case 6A: Selector changed
+A selector has been added or removed.
+
+### Selector Updates
+Selectors need to be able to tell the UI engine when they need to be re-evaluated.
+
+Selectors:  
+ - Tag selector
+ - Type selector
+ - Hover/click/focus selector
+ - Hierarchy selector (even/odd, nth child, child of type)
+
+To cover all of these cases we need: hierarchy update notifications (likely to cause the whole 
+selector subtree to be re-evaluated); and element property change notifications (can only 
+affect the changed element and its children). As such, all event notifications should bubble up
+automatically; the `StyleSet` will subscribe to these on registration and pass these on to each
+selector which can do what 
+
 
 ## Transitions
 

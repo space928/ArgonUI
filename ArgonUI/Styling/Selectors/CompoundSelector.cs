@@ -10,23 +10,46 @@ namespace ArgonUI.Styling.Selectors;
 /// <summary>
 /// A style selector which filters elements out unless they match all of the contained selectors.
 /// </summary>
-public class CompoundSelector : IStyleSelector, ICollection<IStyleSelector>
+public class CompoundSelector : IStyleSelector, IFlattenedStyleSelector, ICollection<IStyleSelector>
 {
-    private readonly List<IStyleSelector> selectors = [];
+    private readonly List<IStyleSelector> selectors;
+    private readonly bool canUseFlattened;
 
     public int Count => selectors.Count;
     public bool IsReadOnly => true;
 
-    public CompoundSelector() { }
+    public bool SupportsFlattenedSelection => canUseFlattened;
+
+    public CompoundSelector() 
+    {
+        selectors = [];
+    }
 
     public CompoundSelector(IEnumerable<IStyleSelector> selectors)
     {
-        this.selectors.AddRange(selectors);
+        this.selectors = new(selectors);
+        canUseFlattened = this.selectors.All(x => x is IFlattenedStyleSelector);
     }
 
     public CompoundSelector(params IStyleSelector[] selectors)
     {
-        this.selectors.AddRange(selectors);
+        this.selectors = new(selectors);
+        canUseFlattened = this.selectors.All(x => x is IFlattenedStyleSelector);
+    }
+
+    public IEnumerable<UIElement> Filter(UIElement elementTree)
+    {
+        if (selectors.Count == 0)
+            return AllSelector.SelectAll(elementTree);
+        if (canUseFlattened)
+            return Filter(AllSelector.SelectAll(elementTree));
+
+        // Apply each of the selectors successively to the sequence
+        var selected = selectors[0].Filter(elementTree);
+        for (int i = 1; i < selectors.Count; i++)
+            selected = selected.Intersect(selectors[i].Filter(elementTree));
+        
+        return selected;
     }
 
     public IEnumerable<UIElement> Filter(IEnumerable<UIElement> elements)
@@ -34,8 +57,14 @@ public class CompoundSelector : IStyleSelector, ICollection<IStyleSelector>
         var ret = elements;
         // Apply each of the selectors successively to the sequence
         foreach (var selector in selectors)
-            ret = selector.Filter(ret);
+            ret = ((IFlattenedStyleSelector)selector).Filter(ret);
         return ret;
+    }
+
+    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange)
+    {
+        // Higher values mean more needs updating, so simply return the maximum of the selectors.
+        return (StyleSelectorUpdate)selectors.Max(x=>(int)x.NeedsReevaluation(target, propertyName, treeChange));
     }
 
     public bool Contains(IStyleSelector item) => selectors.Contains(item);

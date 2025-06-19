@@ -5,14 +5,18 @@ using System;
 using System.Collections.Generic;
 using ArgonUI.Styling;
 using ArgonUI.SourceGenerator;
+using System.Runtime.CompilerServices;
 
 namespace ArgonUI.UIElements;
 
 /// <summary>
 /// Represents the base class for all renderable UI elements in ArgonUI.
 /// </summary>
+#pragma warning disable AR1004 // "Fields annotated with [Reactive] must be in a class which derives from UIElement"; this is the UIElement class so this doesn't apply
 public abstract partial class UIElement : ReactiveObject, IDisposable
+#pragma warning restore AR1004
 {
+    #region Public Properties
     /// <summary>
     /// The name associated with this UIElement.
     /// </summary>
@@ -123,6 +127,7 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// Gets the height of the element when using automatic sizing.
     /// </summary>
     public virtual int DesiredHeight => Height;
+    #endregion
 
     // Read only
     private float renderedWidth;
@@ -131,29 +136,154 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     private Bounds2D renderedBoundsAbsolute;
     private DirtyFlags dirtyFlag = DirtyFlags.Layout | DirtyFlags.Content;
 
-    // Events
-    public event Action? OnMouseDown;
-    public event Action? OnMouseUp;
-    public event Action? OnMouseEnter;
-    public event Action? OnMouseLeave;
-    public event Action? OnMouseOver;
-    public event Action? OnDoubleClick;
-    public event Action? OnMouseWheel;
-    public event Action? OnKeyDown;
-    public event Action? OnKeyUp;
-    public event Action? OnDragStart;
-    public event Action? OnDrop;
-    public event Action? OnDragEnter;
-    public event Action? OnDragLeave;
-    public event Action? OnDragOver;
-    public event Action? OnFocusGot;
-    public event Action? OnFocusLost;
+    #region Events
+    /// <summary>
+    /// This event is invoked in the instant that a mouse button is pressed.
+    /// </summary>
+    public event MouseButtonEventHandler? OnMouseDown;
+    /// <summary>
+    /// This event is invoked the instant that a mouse button is released.
+    /// </summary>
+    public event MouseButtonEventHandler? OnMouseUp;
+    /// <summary>
+    /// This event is invoked when the cursor enters the collision rectangle of this element.
+    /// This occurs when <see cref="HitTest(in Vector2)"/> returns <see langword="true"/>.
+    /// </summary>
+    public event MousePosEventHandler? OnMouseEnter;
+    /// <summary>
+    /// This event is invoked when the cursor leaves the collision rectangle of this element.
+    /// This occurs when <see cref="HitTest(in Vector2)"/> returns <see langword="false"/>.
+    /// </summary>
+    public event MousePosEventHandler? OnMouseLeave;
+    /// <summary>
+    /// This event is invoked every frame that the mouse moves while it is hovering over this element.
+    /// This occurs while <see cref="HitTest(in Vector2)"/> returns <see langword="true"/>.
+    /// </summary>
+    public event MousePosEventHandler? OnMouseOver;
+    /// <summary>
+    /// This event is invoked when this element is double clicked.
+    /// </summary>
+    public event MouseButtonEventHandler? OnDoubleClick;
+    /// <summary>
+    /// This event is invoked when the scroll wheel is scrolled, while the mouse is over this element.
+    /// </summary>
+    public event MouseScrollEventHandler? OnMouseWheel;
+    /// <summary>
+    /// This event is invoked when a key is pressed, while this element has keyboard focus <see cref="InputManager.FocussedElement"/>.
+    /// </summary>
+    public event KeyEventHandler? OnKeyDown;
+    /// <summary>
+    /// This event is invoked when a key is released, while this element has keyboard focus <see cref="InputManager.FocussedElement"/>.
+    /// </summary>
+    public event KeyEventHandler? OnKeyUp;
+    /// <summary>
+    /// This event is invoked when a drag-drop operation is started.
+    /// </summary>
+    public event InputEventHandler? OnDragStart;
+    /// <summary>
+    /// This event is invoked when a drag-drop operation is completed (the mouse button is released).
+    /// </summary>
+    public event InputEventHandler? OnDrop;
+    /// <summary>
+    /// This event is invoked when the cursor enters the collision rectangle of this element during a drag-drop operation.
+    /// This occurs when <see cref="HitTest(in Vector2)"/> returns <see langword="true"/>.
+    /// </summary>
+    public event InputEventHandler? OnDragEnter;
+    /// <summary>
+    /// This event is invoked when the cursor leaves the collision rectangle of this element during a drag-drop operation.
+    /// This occurs when <see cref="HitTest(in Vector2)"/> returns <see langword="false"/>.
+    /// </summary>
+    public event InputEventHandler? OnDragLeave;
+    /// <summary>
+    /// This event is invoked when the cursor moves when hovering over this element during a drag-drop operation.
+    /// This occurs while <see cref="HitTest(in Vector2)"/> returns <see langword="false"/>.
+    /// </summary>
+    public event InputEventHandler? OnDragOver;
+    /// <summary>
+    /// This event is invoked when this element gains keyboard focus.
+    /// See: <seealso cref="InputManager.FocussedElement"/>
+    /// </summary>
+    public event InputEventHandler? OnFocusGot;
+    /// <summary>
+    /// This event is invoked when this element looses keyboard focus.
+    /// See: <seealso cref="InputManager.FocussedElement"/>
+    /// </summary>
+    public event InputEventHandler? OnFocusLost;
 
+    /// <summary>
+    /// This event is invoked when this element is added to a window (or one of its child elements).
+    /// </summary>
     public event Action? OnLoaded; // Called when the UIElement is added to the ui graph
+    /// <summary>
+    /// This event is invoked when this element is removed from a window (or one of its child elements).
+    /// </summary>
     public event Action? OnUnloaded;
+    /// <summary>
+    /// This event is invoked just before this element is drawn. Note that this event will only be invoked if this element has been 
+    /// dirtied for redrawing, otherwise the element will be redrawn using the cached draw commands and this event will not be
+    /// invoked.
+    /// </summary>
     public event Action? OnDraw; // Often as a result of a bounds change, useful if the user wants to do anything on draw; tbh should probs just be invoked from Draw()
+    /// <summary>
+    /// This event is invoked when a property in a child element is changed.
+    /// This event bubbles up to parent elements.
+    /// </summary>
+    public event ChildPropertyChangedHandler? ChildPropertyChanged;
+    /// <summary>
+    /// This event is invoked when a child element is added or removed. 
+    /// This event bubbles up to parent elements.
+    /// </summary>
+    public event ChildElementChangedHandler? ChildElementChanged;
 
     protected internal event Action? OnDirty; // Mostly for internal use
+
+    /// <summary>
+    /// Represents the method that handles <see cref="ChildPropertyChanged"/> events.
+    /// </summary>
+    /// <param name="target">The child <see cref="UIElement"/> which raised the event.</param>
+    /// <param name="propertyName">The name of the property which was changed.</param>
+    public delegate void ChildPropertyChangedHandler(UIElement target, string? propertyName);
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="target"></param>
+    /// <param name="treeChange"></param>
+    public delegate void ChildElementChangedHandler(UIElement target, UIElementTreeChange treeChange);
+    /// <summary>
+    /// Represents the method that handles mouse down/up events.
+    /// </summary>
+    /// <param name="inputManager"></param>
+    /// <param name="button">The mouse button which was pressed/released.</param>
+    public delegate void MouseButtonEventHandler(InputManager inputManager, MouseButton button);
+    /// <summary>
+    /// Represents the method that handles mouse movement events.
+    /// </summary>
+    /// <param name="inputManager"></param>
+    /// <param name="pos">The new position of the mouse.</param>
+    public delegate void MousePosEventHandler(InputManager inputManager, VectorInt2 pos);
+    /// <summary>
+    /// Represents the method that handles mouse scroll events.
+    /// </summary>
+    /// <param name="inputManager"></param>
+    /// <param name="delta">How much the mouse has scrolled since this event was last invoked.</param>
+    public delegate void MouseScrollEventHandler(InputManager inputManager, Vector2 delta);
+    /// <summary>
+    /// Represents the method that handles keyboard events.
+    /// </summary>
+    /// <param name="inputManager"></param>
+    /// <param name="key">The key that was pressed/released.</param>
+    public delegate void KeyEventHandler(InputManager inputManager, KeyCode key);
+    /// <summary>
+    /// Represents the method that handles events from the input manager.
+    /// </summary>
+    /// <param name="inputManager"></param>
+    public delegate void InputEventHandler(InputManager inputManager);
+    #endregion
+
+    public UIElement()
+    {
+        PropertyChanged += (o, e) => OnChildPropertyChanged(e.PropertyName);
+    }
 
     /// <summary>
     /// Marks this element as dirty, forcing the UI engine to redraw this element and it's children when it's next dispatched.
@@ -300,25 +430,52 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
         return bounds;
     }
 
-    internal void InvokeOnMouseDown(MouseButton button) => OnMouseDown?.Invoke();
-    internal void InvokeOnMouseUp(MouseButton button) => OnMouseUp?.Invoke();
-    internal void InvokeOnMouseEnter(VectorInt2 pos) => OnMouseEnter?.Invoke();
-    internal void InvokeOnMouseLeave(VectorInt2 pos) => OnMouseLeave?.Invoke();
-    internal void InvokeOnMouseOver(VectorInt2 pos) => OnMouseOver?.Invoke();
-    internal void InvokeOnDoubleClick() => OnDoubleClick?.Invoke();
-    internal void InvokeOnMouseWheel(Vector2 delta) => OnMouseWheel?.Invoke();
-    internal void InvokeOnKeyDown(KeyCode key) => OnKeyDown?.Invoke();
-    internal void InvokeOnKeyUp(KeyCode key) => OnKeyUp?.Invoke();
-    internal void InvokeOnDragStart() => OnDragStart?.Invoke();
-    internal void InvokeOnDrop() => OnDrop?.Invoke();
-    internal void InvokeOnDragEnter() => OnDragEnter?.Invoke();
-    internal void InvokeOnDragLeave() => OnDragLeave?.Invoke();
-    internal void InvokeOnDragOver() => OnDragOver?.Invoke();
-    internal void InvokeOnFocusGot() => OnFocusGot?.Invoke();
-    internal void InvokeOnFocusLost() => OnFocusLost?.Invoke();
+    internal void InvokeOnMouseDown(InputManager inputManager, MouseButton button) => OnMouseDown?.Invoke(inputManager, button);
+    internal void InvokeOnMouseUp(InputManager inputManager, MouseButton button) => OnMouseUp?.Invoke(inputManager, button);
+    internal void InvokeOnMouseEnter(InputManager inputManager, VectorInt2 pos) => OnMouseEnter?.Invoke(inputManager, pos);
+    internal void InvokeOnMouseLeave(InputManager inputManager, VectorInt2 pos) => OnMouseLeave?.Invoke(inputManager, pos);
+    internal void InvokeOnMouseOver(InputManager inputManager, VectorInt2 pos) => OnMouseOver?.Invoke(inputManager, pos);
+    internal void InvokeOnDoubleClick(InputManager inputManager, MouseButton button) => OnDoubleClick?.Invoke(inputManager, button);
+    internal void InvokeOnMouseWheel(InputManager inputManager, Vector2 delta) => OnMouseWheel?.Invoke(inputManager, delta);
+    internal void InvokeOnKeyDown(InputManager inputManager, KeyCode key) => OnKeyDown?.Invoke(inputManager, key);
+    internal void InvokeOnKeyUp(InputManager inputManager, KeyCode key) => OnKeyUp?.Invoke(inputManager, key);
+    internal void InvokeOnDragStart(InputManager inputManager) => OnDragStart?.Invoke(inputManager);
+    internal void InvokeOnDrop(InputManager inputManager) => OnDrop?.Invoke(inputManager);
+    internal void InvokeOnDragEnter(InputManager inputManager) => OnDragEnter?.Invoke(inputManager);
+    internal void InvokeOnDragLeave(InputManager inputManager) => OnDragLeave?.Invoke(inputManager);
+    internal void InvokeOnDragOver(InputManager inputManager) => OnDragOver?.Invoke(inputManager);
+    internal void InvokeOnFocusGot(InputManager inputManager) => OnFocusGot?.Invoke(inputManager);
+    internal void InvokeOnFocusLost(InputManager inputManager) => OnFocusLost?.Invoke(inputManager);
     internal void InvokeOnLoaded() => OnLoaded?.Invoke();
     internal void InvokeOnUnloaded() => OnUnloaded?.Invoke();
     internal void InvokeOnDraw() => OnDraw?.Invoke();
+
+    /// <summary>
+    /// Invokes a <see cref="ChildPropertyChanged"/> event on all parent elements. 
+    /// </summary>
+    /// <param name="propertyName">The property which was changed.</param>
+    protected void OnChildPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        // Notify all parents one at a time. The event should bubble up, so all event
+        // handlers of one element are invoked before the next parent's ones are invoked.
+        var parent = this;
+        while ((parent = parent!.Parent) != null)
+            parent.ChildPropertyChanged?.Invoke(this, propertyName);
+    }
+
+    /// <summary>
+    /// Invokes a <see cref="ChildElementChanged"/> event on all parent elements.
+    /// </summary>
+    /// <param name="target">The <see cref="UIElement"/> which was added/removed.</param>
+    /// <param name="treeChange">The tree operation affecting this element.</param>
+    protected static void OnChildElementChanged(UIElement target, UIElementTreeChange treeChange)
+    {
+        // Notify all parents one at a time. The event should bubble up, so all event
+        // handlers of one element are invoked before the next parent's ones are invoked.
+        var parent = target;
+        while ((parent = parent!.Parent) != null)
+            parent.ChildElementChanged?.Invoke(target, treeChange);
+    }
 }
 
 public enum Alignment

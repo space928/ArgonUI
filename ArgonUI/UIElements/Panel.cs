@@ -9,34 +9,36 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
-public class Panel : UIElement, IContainer
+public class Panel : UIContainer
 {
-    public ReadOnlyCollection<UIElement> Children => throw new NotImplementedException();
+    public override IReadOnlyList<UIElement> Children => throw new NotImplementedException();
 
-    public Vector4 InnerPadding { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-    public bool ClipContents { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-    public void AddChild(UIElement child)
+    public override void AddChild(UIElement child)
     {
         throw new NotImplementedException();
     }
 
-    public void AddChildren(UIElement[] children)
+    public override void AddChildren(IEnumerable<UIElement> children)
     {
         throw new NotImplementedException();
     }
 
-    public void InsertChild(UIElement child, int index)
+    public override void InsertChild(UIElement child, int index)
     {
         throw new NotImplementedException();
     }
 
-    public void RemoveChild(UIElement child)
+    public override bool RemoveChild(UIElement child)
     {
         throw new NotImplementedException();
     }
 
-    public void RemoveChildren(UIElement[] children)
+    public override void RemoveChildren(IEnumerable<UIElement> children)
+    {
+        throw new NotImplementedException();
+    }
+
+    public override void ClearChildren()
     {
         throw new NotImplementedException();
     }

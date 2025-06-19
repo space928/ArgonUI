@@ -10,9 +10,13 @@ namespace ArgonUI.Styling.Selectors;
 /// <summary>
 /// A style selector which which matches all elements of any of the types specified.
 /// </summary>
-public class TypeSelector : IStyleSelector, ICollection<Type>
+public class TypeSelector : IStyleSelector, IFlattenedStyleSelector, ICollection<Type>
 {
     private readonly HashSet<Type> types;
+
+    public int Count => types.Count;
+    public bool IsReadOnly => false;
+    public bool SupportsFlattenedSelection => true;
 
     public TypeSelector(IEnumerable<Type> types)
     {
@@ -21,12 +25,24 @@ public class TypeSelector : IStyleSelector, ICollection<Type>
 
     public TypeSelector(params Type[] types) : this((IEnumerable<Type>)types) { }
 
-    public int Count => types.Count;
-    public bool IsReadOnly => false;
+    public IEnumerable<UIElement> Filter(UIElement elementTree)
+    {
+        return Filter(AllSelector.SelectAll(elementTree));
+    }
 
     public IEnumerable<UIElement> Filter(IEnumerable<UIElement> elements)
     {
-        throw new NotImplementedException();
+        foreach (var element in elements)
+        {
+            if (types.Contains(element.GetType()))
+                yield return element;
+        }
+    }
+
+    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange)
+    {
+        // If an element was added to the tree, it might need to be re-styled. In any other case, do nothing.
+        return treeChange == UIElementTreeChange.ElementAdded ? StyleSelectorUpdate.ChangedElement : StyleSelectorUpdate.None;
     }
 
     public void Add(Type item) => types.Add(item);

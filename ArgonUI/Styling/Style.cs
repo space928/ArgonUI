@@ -31,7 +31,7 @@ public class Style : IList<IStylableProperty>, INotifyStyleChanged
     public int Count => props.Count;
     public bool IsReadOnly => false;
     public event Action<Style, IStylableProperty>? OnStyleChanged;
-    public event Action<IEnumerable<int>>? OnReapplyParentStyles;
+    public event Action<Style, IStylableProperty?>? OnStylePropRemoved;
 
     public Style()
     {
@@ -80,12 +80,35 @@ public class Style : IList<IStylableProperty>, INotifyStyleChanged
     /// Most of the time you shouldn't need to call this method.
     /// </summary>
     /// <param name="element">The element to apply styles to.</param>
-    public void ApplyStyle(UIElement element)
+    /// <param name="reapplyChildStyles">Whether StyleSets belonging to 
+    /// child elements should be reapplied after this style.</param>
+    /// <param name="matchProp">Optionally, only apply style properties which match the name of the given property.</param>
+    public void ApplyStyle(UIElement element, bool reapplyChildStyles = true, int? matchProp = null)
     {
-        if (selector?.Filter(new OneEnumerable<UIElement>(element)).Any() ?? true)
+        var elements = selector?.Filter(element) ?? AllSelector.SelectAll(element);
+        // This will select properties with colliding hashes, this shouldn't be a problem though.
+        var selectedProps = matchProp == null ? props.AsEnumerable() : props.Where(x => x.NameHash == matchProp.Value);
+        if (reapplyChildStyles)
         {
-            foreach (var prop in props)
-                prop.Apply(element);
+            using TemporaryList<UIElement> stylesToReapply = [];
+            foreach (var selected in elements)
+            {
+                foreach (var prop in selectedProps)
+                    prop.Apply(selected);
+                if (selected != element && selected.Style != null)
+                    stylesToReapply.Add(selected);
+            }
+            // TODO: For efficiency, we should be able to prune to only the elements selected by our selector.
+            foreach (var styledElem in stylesToReapply)
+                styledElem.Style!.ApplyStyles(styledElem);
+        }
+        else
+        {
+            foreach (var selected in elements)
+            {
+                foreach (var prop in selectedProps)
+                    prop.Apply(selected);
+            }
         }
     }
 
@@ -98,6 +121,13 @@ public class Style : IList<IStylableProperty>, INotifyStyleChanged
     {
         foreach (var prop in props)
             OnStyleChanged?.Invoke(this, prop);
+    }
+
+    /// <inheritdoc cref="IStyleSelector.NeedsReevaluation(UIElement, string?, UIElementTreeChange)"/>
+    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange)
+    {
+        return Selector?.NeedsReevaluation(target, propertyName, treeChange)
+            ?? AllSelector.Shared.NeedsReevaluation(target, propertyName, treeChange);
     }
 
     public void Add(IStylableProperty item)
@@ -121,7 +151,7 @@ public class Style : IList<IStylableProperty>, INotifyStyleChanged
     {
         foreach (var prop in props)
             prop.OnStylablePropChanged -= NotifyStyleChanged;
-        OnReapplyParentStyles?.Invoke(props.Select(x=>x.NameHash));
+        OnStylePropRemoved?.Invoke(this, null);
         props.Clear();
     }
 
@@ -145,7 +175,7 @@ public class Style : IList<IStylableProperty>, INotifyStyleChanged
         if (res)
         {
             item.OnStylablePropChanged -= NotifyStyleChanged;
-            OnReapplyParentStyles?.Invoke(new OneEnumerable<int>(item.NameHash));
+            OnStylePropRemoved?.Invoke(this, item);
         }
         return res;
     }
@@ -155,7 +185,7 @@ public class Style : IList<IStylableProperty>, INotifyStyleChanged
         var item = props[index];
         props.RemoveAt(index);
         item.OnStylablePropChanged -= NotifyStyleChanged;
-        OnReapplyParentStyles?.Invoke(new OneEnumerable<int>(item.NameHash));
+        OnStylePropRemoved?.Invoke(this, item);
     }
 
     public bool Contains(IStylableProperty item) => props.Contains(item);

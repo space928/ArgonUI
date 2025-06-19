@@ -3,7 +3,6 @@ using ArgonUI.SourceGenerator;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -11,9 +10,10 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
-public partial class UIWindowElement : UIElement, IContainer
+public partial class UIWindowElement : UIContainer
 {
     private readonly List<UIElement> children;
+    private readonly ReadOnlyCollection<UIElement> childrenRO;
     /// <summary>
     /// The background colour of this window.
     /// </summary>
@@ -21,10 +21,8 @@ public partial class UIWindowElement : UIElement, IContainer
     private Vector4 bgColour;
 
     public UIWindow Window { get; init; }
-    public ReadOnlyCollection<UIElement> Children => new(children);
+    public override IReadOnlyList<UIElement> Children => childrenRO;
 
-    public Vector4 InnerPadding { get; set; }
-    public bool ClipContents { get; set; }
     //public override int DesiredWidth => Window.Size.x;
     //public override int DesiredHeight => Window.Size.y;
 
@@ -32,6 +30,7 @@ public partial class UIWindowElement : UIElement, IContainer
     {
         this.Window = window;
         children = [];
+        childrenRO = new(children);
         Width = Window.Size.x;
         Height = Window.Size.y;
         Window.OnLoaded += () =>
@@ -58,35 +57,52 @@ public partial class UIWindowElement : UIElement, IContainer
         }
     }
 
-    public void AddChild(UIElement child)
+    public override void AddChild(UIElement child)
     {
         children.Add(child);
         child.Parent = this;
+        OnChildElementChanged(child, Styling.UIElementTreeChange.ElementAdded);
     }
 
-    public void AddChildren(UIElement[] children)
+    public override void AddChildren(IEnumerable<UIElement> children)
     {
-        this.children.AddRange(children);
-        foreach (var child in children)
-            child.Parent = this;
+        foreach (UIElement child in children)
+            AddChild(child);
     }
 
-    public void InsertChild(UIElement child, int index)
+    public override void InsertChild(UIElement child, int index)
     {
         children.Insert(index, child);
         child.Parent = this;
+        OnChildElementChanged(child, Styling.UIElementTreeChange.ElementAdded);
     }
 
-    public void RemoveChild(UIElement child)
+    public override bool RemoveChild(UIElement child)
     {
-        children.Remove(child);
-        child.Parent = null;
+        if (children.Remove(child))
+        {
+            child.Parent = null;
+            OnChildElementChanged(child, Styling.UIElementTreeChange.ElementRemoved);
+            return true;
+        }
+        return false;
     }
 
-    public void RemoveChildren(UIElement[] children)
+    public override void RemoveChildren(IEnumerable<UIElement> children)
     {
         foreach (UIElement child in children)
             RemoveChild(child);
+    }
+
+    public override void ClearChildren()
+    {
+        for (int i = children.Count - 1; i >= 0; i--)
+        {
+            var child = children[i];
+            children.RemoveAt(i);
+            child.Parent = null;
+            OnChildElementChanged(child, Styling.UIElementTreeChange.ElementRemoved);
+        }
     }
 
     protected internal override Bounds2D Layout()

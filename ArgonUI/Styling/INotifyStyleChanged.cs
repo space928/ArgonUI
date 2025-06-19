@@ -11,7 +11,9 @@ public interface INotifyStyleChanged
     /// </summary>
     public event Action<Style, IStylableProperty> OnStyleChanged;
     /// <summary>
-    /// Notifies the subscriber that the styled properties in the parent styles with the matching name hashes must be reapplied to the styled elements.
+    /// Notifies the subscriber that the specified styled property has been removed from this style. The parent styles which 
+    /// affect this property needs to be re-applied. If the stylable property in this event is <see langword="null"/> then
+    /// all stylable properties were removed.
     /// </summary>
-    public event Action<IEnumerable<int>>? OnReapplyParentStyles;
+    public event Action<Style, IStylableProperty?> OnStylePropRemoved;
 }

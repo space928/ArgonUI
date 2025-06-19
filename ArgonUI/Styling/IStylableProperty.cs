@@ -10,7 +10,7 @@ public interface IStylableProperty : INotifyStylablePropChanged
     public object? GetValue();
     public void SetValue(object? value);
     /// <summary>
-    /// Applies this property to targetted UI Element.
+    /// Applies this property to targeted UI Element.
     /// </summary>
     /// <param name="target"></param>
     internal void Apply(UIElement target);

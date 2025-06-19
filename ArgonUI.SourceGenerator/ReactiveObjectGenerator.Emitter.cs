@@ -30,7 +30,10 @@ public partial class ReactiveObjectGenerator
                 // Generate a property
                 if (!string.IsNullOrEmpty(prop.DocComment))
                     Helpers.PrintDocComment(sb, prop.DocComment!);
-                sb.AppendLine($"public {prop.FieldType} {prop.PropName}");
+                if (prop.CustomAccessibility != null)
+                    sb.AppendLine($"{prop.CustomAccessibility} {prop.FieldType} {prop.PropName}");
+                else
+                    sb.AppendLine($"public {prop.FieldType} {prop.PropName}");
                 using (sb.EnterCurlyBracket())
                 {
                     // Getter

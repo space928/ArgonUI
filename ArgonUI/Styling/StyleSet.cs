@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ArgonUI.Styling.Selectors;
 using ArgonUI.UIElements;
 
 namespace ArgonUI.Styling;
@@ -12,13 +14,18 @@ namespace ArgonUI.Styling;
 /// <summary>
 /// A style set contains a number of stylable properties which can be applied to <see cref="UIElement"/> instances.
 /// </summary>
-public class StyleSet : IList<Style>
+public partial class StyleSet : IList<Style>
 {
     private readonly List<Style> styles = [];
-    private readonly List<UIElement> controlledElements = [];
-    private readonly ReadOnlyCollection<UIElement> controlledElementsRO;
+    /// <summary>
+    /// This dictionary stores a reference to all UIElements which have registered this style set.
+    /// IE: All UIElements with <see cref="UIElement.Style"/> set to this instance.
+    /// </summary>
+    private readonly HashSet<UIElement> registeredElements = [];
+    //private readonly List<RegisteredElement> registeredElements = [];
+    //private readonly ReadOnlyCollection<RegisteredElement> registeredElementsRO;
 
-    public ReadOnlyCollection<UIElement> ControlledElements => controlledElementsRO;
+    public IReadOnlyCollection<UIElement> RegisteredElements => registeredElements;//registeredElementsRO;
 
     public int Count => styles.Count;
     public bool IsReadOnly => false;
@@ -26,17 +33,18 @@ public class StyleSet : IList<Style>
 
     public StyleSet()
     {
-        controlledElementsRO = new(controlledElements);
+        //registeredElementsRO = new(registeredElements);
     }
 
     public StyleSet(IEnumerable<Style> styles) : this()
     {
-        this.styles.AddRange(styles);
+        foreach (var style in styles)
+            Add(style);
     }
 
     public StyleSet(Style style) : this()
     {
-        this.styles.Add(style);
+        Add(style);
     }
 
     /// <summary>
@@ -47,8 +55,11 @@ public class StyleSet : IList<Style>
     /// <param name="uiElement">The element to register.</param>
     public void Register(UIElement uiElement)
     {
-        controlledElements.Add(uiElement);
-        ApplyStyles(uiElement); // TODO: This needs to apply to all children as well...
+        registeredElements.Add(uiElement);
+        uiElement.ChildElementChanged += HandleChildElementChanged;
+        uiElement.ChildPropertyChanged += HandleElementPropertyChanged;
+        uiElement.PropertyChanged += HandleElementPropertyChanged;
+        ApplyStyles(uiElement);
     }
 
     /// <summary>
@@ -60,28 +71,92 @@ public class StyleSet : IList<Style>
     /// <param name="applyParentStyle">Whether any styles set on the parents should be applied when unregistering this element.</param>
     public bool Unregister(UIElement uiElement, bool applyParentStyle = true)
     {
-        if (controlledElements.Remove(uiElement))
-        {
-            if (!applyParentStyle)
-                return true;
-            // Search up the hierarchy to see if we can apply any parent styles
-            // Go all the way up the hierarchy and then apply styles on the way back down
-            // TODO: All this gets complicated, what if each StylableProp stored a link to it's parent property
-            // (must enforce lack of cycles!) to effectively make a big linked list so we don't have to search 
-            // the element tree every time.
-            List<UIElement> parents = [];
+        if (!registeredElements.Remove(uiElement))
+            return false;
 
-            var parent = uiElement;
-            while ((parent = parent.Parent) != null)
+        uiElement.ChildElementChanged -= HandleChildElementChanged;
+        uiElement.ChildPropertyChanged -= HandleElementPropertyChanged;
+        uiElement.PropertyChanged -= HandleElementPropertyChanged;
+
+        if (applyParentStyle)
+            ApplyParentStyles(uiElement);
+
+        return true;
+    }
+
+    private void HandleChildElementChanged(UIElement target, UIElementTreeChange treeChange)
+    {
+        foreach (var style in styles)
+        {
+            var res = style.NeedsReevaluation(target, null, treeChange);
+            switch (res)
+            {
+                case StyleSelectorUpdate.ChangedElement:
+                    style.ApplyStyle(target);
+                    break;
+                case StyleSelectorUpdate.AllElements:
+                    foreach (var registered in registeredElements)
+                        style.ApplyStyle(registered);
+                    break;
+            }
+        }
+    }
+
+    private void HandleElementPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
+    {
+        HandleElementPropertyChanged((sender as UIElement)!, eventArgs.PropertyName);
+    }
+
+    private void HandleElementPropertyChanged(UIElement target, string? propertyName)
+    {
+        foreach (var style in styles)
+        {
+            var res = style.NeedsReevaluation(target, propertyName, UIElementTreeChange.None);
+            switch (res)
+            {
+                case StyleSelectorUpdate.ChangedElement:
+                    style.ApplyStyle(target, true, propertyName?.GetHashCode());
+                    break;
+                case StyleSelectorUpdate.AllElements:
+                    int? hash = propertyName?.GetHashCode();
+                    foreach (var registered in registeredElements)
+                        style.ApplyStyle(registered, true, hash);
+                    break;
+            }
+        }
+    }
+
+    private static void ApplyParentStyles(UIElement uiElement, IStylableProperty? matchProp = null)
+    {
+        // Search up the hierarchy to see if we can apply any parent styles
+        // Go all the way up the hierarchy and then apply styles on the way back down
+        TemporaryList<UIElement> parents = [];
+
+        // Find all parent styles
+        var parent = uiElement;
+        while ((parent = parent.Parent) != null)
+            if (parent.Style != null)
                 parents.Add(parent);
 
-            for (int i = parents.Count - 1; i >= 0; i--)
-                if (parents[i].Style is StyleSet parentStyle)
-                    parentStyle.ApplyStyles(uiElement);
+        // Apply them top-down
+        for (int i = parents.Count - 1; i >= 1; i--)
+            // Don't apply child styles yet, we only need to do that for the last parent style.
+            parents[i].Style!.ApplyStyles(uiElement, false, matchProp);
+        if (parents.Count >= 1)
+            parents[0].Style!.ApplyStyles(uiElement, true, matchProp);
+        parents.Dispose();
+    }
 
-            return true;
+    private static StyleSet? FindParentStyle(UIElement uiElement)
+    {
+        var parent = uiElement.Parent;
+        while (parent != null)
+        {
+            if (parent.Style != null)
+                return parent.Style;
+            parent = parent.Parent;
         }
-        return false;
+        return null;
     }
 
     /// <summary>
@@ -89,30 +164,49 @@ public class StyleSet : IList<Style>
     /// Most of the time you shouldn't need to call this method.
     /// </summary>
     /// <param name="element">The element to apply styles to.</param>
-    public void ApplyStyles(UIElement element)
+    /// <param name="applyChildStyles">Whether <see cref="StyleSet"/> belonging to child elements 
+    /// should be automatically re-applied</param>
+    /// <param name="matchProp">Optionally, only apply style properties which match the name of the given property.</param>
+    public void ApplyStyles(UIElement element, bool applyChildStyles = true, IStylableProperty? matchProp = null)
     {
+        // Apply All styles in set to One object.
         foreach (var style in styles)
-            style.ApplyStyle(element);
+            style.ApplyStyle(element, applyChildStyles, matchProp?.NameHash);
     }
 
     private void ApplyStyleToElements(Style style)
     {
-        IEnumerable<UIElement> elements = controlledElements;
-        if (style.Selector is IStyleSelector selector)
-            elements = selector.Filter(controlledElements);
-
-        foreach (var element in elements)
+        // Apply One styles in set to All objects.
+        foreach (var element in registeredElements)
             style.ApplyStyle(element);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="matchProp">Optionally, only apply style properties which match the name of the given property.</param>
+    private void ApplyParentStyles(IStylableProperty? matchProp = null)
+    {
+        foreach (var element in registeredElements)
+            ApplyParentStyles(element, matchProp);
     }
 
     private void HandleStyleChange(Style style, IStylableProperty prop)
     {
-        IEnumerable<UIElement> elements = controlledElements;
-        if (style.Selector is IStyleSelector selector)
-            elements = selector.Filter(controlledElements);
+        foreach (var element in registeredElements)
+        {
+            var selector = style.Selector ?? AllSelector.Shared;
+            var selectedElements = selector.Filter(element);
 
-        foreach (var element in elements)
-            prop.Apply(element);
+            foreach (var selected in selectedElements)
+                prop.Apply(selected);
+        }
+    }
+
+    private void HandleStylePropRemoved(Style style, IStylableProperty? prop)
+    {
+        // TODO: It might be faster in some cases if we only re-apply styles to elements selected by this style.
+        ApplyParentStyles(prop);
     }
 
     public void Add(Style item)
@@ -120,15 +214,18 @@ public class StyleSet : IList<Style>
         styles.Add(item);
         ApplyStyleToElements(item);
         item.OnStyleChanged += HandleStyleChange;
-        //item.OnReapplyParentStyles += 
+        item.OnStylePropRemoved += HandleStylePropRemoved;
     }
 
     public void Clear()
     {
         foreach (var style in styles)
+        {
             style.OnStyleChanged -= HandleStyleChange;
+            style.OnStylePropRemoved -= HandleStylePropRemoved;
+        }
         styles.Clear();
-        // TODO: Apply parent styles
+        ApplyParentStyles();
     }
 
     public void Insert(int index, Style item)
@@ -136,14 +233,18 @@ public class StyleSet : IList<Style>
         styles.Insert(index, item);
         ApplyStyleToElements(item);
         item.OnStyleChanged += HandleStyleChange;
+        item.OnStylePropRemoved += HandleStylePropRemoved;
     }
 
     public bool Remove(Style item)
     {
         var res = styles.Remove(item);
         if (res)
+        {
             item.OnStyleChanged -= HandleStyleChange;
-        // TODO: Apply parent + this styles
+            item.OnStylePropRemoved -= HandleStylePropRemoved;
+        }
+        ApplyParentStyles();
         return res;
     }
 
@@ -152,7 +253,8 @@ public class StyleSet : IList<Style>
         var style = styles[index];
         styles.RemoveAt(index);
         style.OnStyleChanged -= HandleStyleChange;
-        // TODO: Apply parent + this styles
+        style.OnStylePropRemoved -= HandleStylePropRemoved;
+        ApplyParentStyles();
     }
 
     public bool Contains(Style item) => styles.Contains(item);
@@ -161,4 +263,37 @@ public class StyleSet : IList<Style>
 
     IEnumerator IEnumerable.GetEnumerator() => styles.GetEnumerator();
     public IEnumerator<Style> GetEnumerator() => styles.GetEnumerator();
+
+    public struct RegisteredElement : IEquatable<RegisteredElement>, IEquatable<UIElement>
+    {
+        public readonly UIElement element;
+        public StyleSet? parent;
+
+        public RegisteredElement(UIElement element, StyleSet? parent = null)
+        {
+            this.element = element;
+            this.parent = parent;
+        }
+
+        public readonly override string ToString() => element?.ToString() ?? string.Empty;
+        public readonly override int GetHashCode() => element?.GetHashCode() ?? 0;
+#if NETSTANDARD
+        public readonly override bool Equals(object? obj)
+#else
+        public readonly override bool Equals([NotNullWhen(true)] object? obj)
+#endif
+        {
+            if (obj == element)
+                return true;
+            if (obj is RegisteredElement registered)
+                return registered.element == element;
+            return false;
+        }
+
+        public readonly bool Equals(RegisteredElement other) => element == other.element;
+        public readonly bool Equals(UIElement? other) => other == element;
+
+        public static bool operator ==(RegisteredElement left, RegisteredElement right) => left.Equals(right);
+        public static bool operator !=(RegisteredElement left, RegisteredElement right) => !(left == right);
+    }
 }

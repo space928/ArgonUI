@@ -8,7 +8,7 @@ namespace ArgonUI.Input;
 
 /// <summary>
 /// Represents a key on the keyboard.
-/// Compatible with <see cref="Silk.NET.Input.Input.Common.Key"/>
+/// Compatible with <c>Silk.NET.Input.Input.Common.Key</c>
 /// </summary>
 public enum KeyCode
 {

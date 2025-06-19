@@ -20,7 +20,7 @@ public class InputManager
     private UIElement? lastHoveredElement;
     private UIElement? kbFocussedElement;
     private UIElement? mouseCaptureElement;
-    private Dictionary<KeyCode, bool> pressedKeys;
+    private readonly Dictionary<KeyCode, bool> pressedKeys;
 
     public InputManager(ArgonManager argonManager)
     {
@@ -43,9 +43,9 @@ public class InputManager
         get => kbFocussedElement;
         set
         {
-            kbFocussedElement?.InvokeOnFocusLost();
+            kbFocussedElement?.InvokeOnFocusLost(this);
             kbFocussedElement = value;
-            kbFocussedElement?.InvokeOnFocusGot();
+            kbFocussedElement?.InvokeOnFocusGot(this);
         }
     }
 
@@ -83,14 +83,11 @@ public class InputManager
         var hit = RaycastElement(sender, mousePos);
         if (hit != lastHoveredElement)
         {
-            lastHoveredElement?.InvokeOnMouseLeave(mousePos);
-            hit?.InvokeOnMouseEnter(mousePos);
+            lastHoveredElement?.InvokeOnMouseLeave(this, mousePos);
+            hit?.InvokeOnMouseEnter(this, mousePos);
         }
 
-        if (hit != null)
-        {
-            hit.InvokeOnMouseOver(mousePos);
-        }
+        hit?.InvokeOnMouseOver(this, mousePos);
 
         lastHoveredElement = hit;
         lastMousePos = mousePos;
@@ -98,29 +95,29 @@ public class InputManager
 
     internal void OnMouseUp(UIWindow sender, MouseButton mouseButton)
     {
-        lastHoveredElement?.InvokeOnMouseUp(mouseButton);
+        lastHoveredElement?.InvokeOnMouseUp(this, mouseButton);
     }
 
     internal void OnMouseDown(UIWindow sender, MouseButton mouseButton)
     {
-        lastHoveredElement?.InvokeOnMouseDown(mouseButton);
+        lastHoveredElement?.InvokeOnMouseDown(this, mouseButton);
     }
 
     internal void OnMouseWheel(UIWindow sender, Vector2 delta)
     {
-        lastHoveredElement?.InvokeOnMouseWheel(delta);
+        lastHoveredElement?.InvokeOnMouseWheel(this, delta);
     }
 
     internal void OnKeyDown(UIWindow sender, KeyCode key)
     {
         pressedKeys[key] = true;
-        lastHoveredElement?.InvokeOnKeyDown(key);
+        lastHoveredElement?.InvokeOnKeyDown(this, key);
     }
 
     internal void OnKeyUp(UIWindow sender, KeyCode key)
     {
         pressedKeys[key] = false;
-        lastHoveredElement?.InvokeOnKeyUp(key);
+        lastHoveredElement?.InvokeOnKeyUp(this, key);
     }
 
     /// <summary>
@@ -150,7 +147,7 @@ public class InputManager
     {
         if (element.HitTest(mousePos))
         {
-            if (element is IContainer container)
+            if (element is UIContainer container)
                 foreach (var child in container.Children)
                     if (RaycastElementRecurse(child, mousePos) is UIElement childHit)
                         return childHit;

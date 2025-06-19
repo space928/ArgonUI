@@ -303,6 +303,7 @@ public class OpenGLWindow : UIWindow
         mainMouse.MouseUp += (mouse, button) => inputEvents.Add(new(InputEventType.MouseUp, (MouseButton)button));
         mainMouse.MouseMove += (mouse, pos) => inputEvents.Add(new(InputEventType.MouseMove, pos));
         mainMouse.Scroll += (mouse, pos) => inputEvents.Add(new(InputEventType.MouseScroll, new Vector2(pos.X, pos.Y)));
+        //nativeWnd!.FocusChanged += (focus) =>;
     }
 
     public static Stream LoadResourceFile(string path)

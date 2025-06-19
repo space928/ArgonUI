@@ -80,6 +80,7 @@ public partial class ReactiveObjectGenerator
                     string? docComment = reactiveNode.TargetSymbol.GetDocumentationCommentXml();
                     string? getFunc = null;
                     string? setAction = null;
+                    string? accessibility = null;
                     bool getInline = false;
                     bool setInline = false;
                     StylableField? stylable = null;
@@ -120,12 +121,16 @@ public partial class ReactiveObjectGenerator
                             case nameof(StylableAttribute):
                                 stylable = new();
                                 break;
+                            case nameof(CustomAccessibilityAttribute):
+                                if (args.Length >= 1)
+                                    accessibility = (string)args[0].Value!;
+                                break;
                             default:
                                 break;
                         }
                     }
 
-                    fields.Add(new(typeName, fieldName, propName, docComment, dirtyFlags, getFunc, getInline, setAction, setInline, stylable));
+                    fields.Add(new(typeName, fieldName, propName, docComment, dirtyFlags, getFunc, getInline, setAction, setInline, accessibility, stylable));
                 }
 
                 ReactiveObjectClass reactiveObjectClass = new(
@@ -153,6 +158,7 @@ public partial class ReactiveObjectGenerator
     public record ReactiveObjectClass(Accessibility Accessibility, string Namespace, string Assembly, string ClassName, 
         bool EnableNullable, EquatableArray<ReactiveObjectField> ReactiveFields);
     public record ReactiveObjectField(string FieldType, string FieldName, string PropName, string? DocComment, 
-        DirtyFlags DirtyFlags, string? OnGetFunc, bool GetInline, string? OnSetAction, bool SetInline, StylableField? Stylable);
+        DirtyFlags DirtyFlags, string? OnGetFunc, bool GetInline, string? OnSetAction, bool SetInline, 
+        string? CustomAccessibility, StylableField? Stylable);
     public record StylableField();
 }

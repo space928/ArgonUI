@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -11,71 +12,114 @@ namespace ArgonUI.UIElements;
 /// <summary>
 /// Abstract class for a UIElement which contains a single child element.
 /// </summary>
-public abstract class ElementPresenterBase : UIElement, IContainer
+public abstract class ElementPresenterBase : UIContainer
 {
-    private readonly ReadOnlyCollection<UIElement> childrenRO;
-    private readonly List<UIElement> children;
+    private readonly OneReadOnlyList<UIElement> childList = [];
 
-    public ReadOnlyCollection<UIElement> Children => childrenRO;
+    public override IReadOnlyList<UIElement> Children => childList;
 
-    public virtual Vector4 InnerPadding { get; set; }
-    public virtual bool ClipContents { get; set; }
+    //public virtual Vector4 InnerPadding { get; set; }
+    //public virtual bool ClipContents { get; set; }
 
     /// <summary>
     /// Gets or sets the UIElement contained in this element.
     /// </summary>
     public UIElement? Content
     {
-        get => children.FirstOrDefault();
+        get => childList.value;
         set
         {
             if (value == null)
             {
-                children.Clear();
+                var child = childList.value;
+                childList.value = null;
+                if (child != null)
+                {
+                    child.Parent = null;
+                    OnChildElementChanged(child, Styling.UIElementTreeChange.ElementRemoved);
+                }
             }
             else
             {
-                if (children.Count == 0)
-                    AddChild(value);
-                else
-                    children[0] = value;
+                var old = childList.value;
+                childList.value = value;
+                value.Parent = this;
+
+                if (old != null)
+                {
+                    old.Parent = null;
+                    OnChildElementChanged(old, Styling.UIElementTreeChange.ElementRemoved);
+                }
+                OnChildElementChanged(value, Styling.UIElementTreeChange.ElementAdded);
             }
         }
     }
 
-    public ElementPresenterBase()
+    public override void AddChild(UIElement child)
     {
-        children = [];
-        childrenRO = new(children);
+        if (childList.value == null)
+            throw new InvalidOperationException("Can't add more than one element to an ElementPresenter. " +
+                "Consider wrapping the elements to add in another container element.");
+        childList.value = child;
+        child.Parent = this;
+        OnChildElementChanged(child, Styling.UIElementTreeChange.ElementAdded);
     }
 
-    public void AddChild(UIElement child)
-    {
-        if (children.Count == 0)
-            children.Add(child);
-    }
-
-    public void AddChildren(UIElement[] children)
+    public override void AddChildren(IEnumerable<UIElement> children)
     {
         foreach (UIElement child in children)
+        {
             AddChild(child);
+        }
     }
 
-    public void InsertChild(UIElement child, int index)
+    public override void InsertChild(UIElement child, int index)
     {
         if (index != 0)
             throw new ArgumentOutOfRangeException(nameof(index), "Insertion index must be 0");
         Content = child;
     }
 
-    public void RemoveChild(UIElement child)
+    public override bool RemoveChild(UIElement child)
     {
-        children.Remove(child);
+        if (child != null && childList.value == child)
+        {
+            child.Parent = null;
+            OnChildElementChanged(child, Styling.UIElementTreeChange.ElementRemoved);
+            return true;
+        }
+        return false;
     }
 
-    public void RemoveChildren(UIElement[] children)
+    public override void RemoveChildren(IEnumerable<UIElement> children)
     {
         foreach (UIElement child in children)
             RemoveChild(child);
     }
+
+    public override void ClearChildren()
+    {
+        var child = childList.value;
+        childList.value = null;
+        if (child != null)
+        {
+            child.Parent = null;
+            OnChildElementChanged(child, Styling.UIElementTreeChange.ElementRemoved);
+        }
+    }
+}
+
+public class OneReadOnlyList<T> : IReadOnlyList<T>
+{
+    public T? value;
+
+    public T this[int index] => value!;
+    public int Count => 1;
+
+    public IEnumerator<T> GetEnumerator()
+    {
+        yield return value!;
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

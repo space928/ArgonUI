@@ -34,7 +34,7 @@ public class StylableProp<T> : IStylableProperty
     /// <param name="value"></param>
     /// <param name="applyFunc"></param>
     /// <param name="nameHash"></param>
-    internal StylableProp(T value, Action<UIElement, IStylableProperty> applyFunc, int nameHash)
+    public StylableProp(T value, Action<UIElement, IStylableProperty> applyFunc, int nameHash)
     {
         this.isImplicit = false;
         this.value = value;

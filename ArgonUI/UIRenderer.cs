@@ -65,11 +65,14 @@ internal class UIRenderer
             element.Layout();
         }
 
-        if (element is IContainer container && (element.DirtyFlags & DirtyFlags.ChildLayout) != 0)
+        if (element is UIContainer container && (element.DirtyFlags & DirtyFlags.ChildLayout) != 0)
         {
             element.ClearDirtyFlag(DirtyFlags.ChildLayout);
-            foreach (var child in container.Children)
-                LayoutElementRecurse(child, drawGraph.Children.GetOrAdd(child, () => new(child)));
+            try
+            {
+                foreach (var child in container.Children)
+                    LayoutElementRecurse(child, drawGraph.Children.GetOrAdd(child, () => new(child)));
+            } catch { } // TODO: There can be a race condition if the element tree is modified during rendering. For now, just skip rendering if we encounter an error.
         }
     }
 
@@ -85,11 +88,15 @@ internal class UIRenderer
 
         drawCommands.AddRange(drawGraph.DrawCommands);
 
-        if (element is IContainer container && (element.DirtyFlags & DirtyFlags.ChildContent) != 0)
+        if (element is UIContainer container && (element.DirtyFlags & DirtyFlags.ChildContent) != 0)
         {
             element.ClearDirtyFlag(DirtyFlags.ChildContent);
-            foreach (var child in container.Children)
-                DrawElementRecurse(child, drawGraph.Children.GetOrAdd(child, () => new(child)));
+            try
+            {
+                foreach (var child in container.Children)
+                    DrawElementRecurse(child, drawGraph.Children.GetOrAdd(child, () => new(child)));
+            }
+            catch { }
         }
     }
 

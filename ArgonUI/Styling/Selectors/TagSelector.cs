@@ -10,18 +10,24 @@ namespace ArgonUI.Styling.Selectors;
 /// <summary>
 /// A style selector which matches elements which have all of the specified tags.
 /// </summary>
-public class TagSelector : IStyleSelector, ICollection<string>
+public class TagSelector : IStyleSelector, IFlattenedStyleSelector, ICollection<string>
 {
     private readonly ObservableStringSet tags;
 
     public int Count => tags.Count;
     public bool IsReadOnly => false;
+    public bool SupportsFlattenedSelection => true;
 
     public TagSelector(params string[] tags) : this((IEnumerable<string>)tags) { }
 
     public TagSelector(IEnumerable<string> tags)
     {
         this.tags = new(tags);
+    }
+
+    public IEnumerable<UIElement> Filter(UIElement elementTree)
+    {
+        return Filter(AllSelector.SelectAll(elementTree));
     }
 
     public IEnumerable<UIElement> Filter(IEnumerable<UIElement> elements)
@@ -31,6 +37,16 @@ public class TagSelector : IStyleSelector, ICollection<string>
             if (element.Tags.IsSupersetOf(tags))
                 yield return element;
         }
+    }
+
+    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange)
+    {
+        return treeChange switch
+        {
+            UIElementTreeChange.ElementAdded => StyleSelectorUpdate.ChangedElement,
+            UIElementTreeChange.ElementRemoved => StyleSelectorUpdate.None,
+            _ => propertyName == nameof(UIElement.Tags) ? StyleSelectorUpdate.ChangedElement : StyleSelectorUpdate.None,
+        };
     }
 
     public void Add(string item) => tags.Add(item);

@@ -56,3 +56,16 @@ public sealed class CustomSetAttribute(string setter, bool inline = false) : Att
     public string Setter { get; } = setter;
     public bool Inline { get; } = inline;
 }
+
+/// <summary>
+/// Allows custom accessibility keywords to be used on a property generated using a <see cref="ReactiveAttribute"/>.
+/// </summary>
+/// <example>
+/// [Reactive, CustomAccessibility("protected virtual")] string prop;
+/// </example>
+/// <param name="accessibilityModifiers">The accessibility modifiers to add to the generated property.</param>
+[AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+public sealed class CustomAccessibilityAttribute(string accessibilityModifiers) : Attribute
+{
+    public string AccessibilityModifiers { get; } = accessibilityModifiers;
+}
