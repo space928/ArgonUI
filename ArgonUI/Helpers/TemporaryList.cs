@@ -2,12 +2,13 @@
 using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace ArgonUI;
+namespace ArgonUI.Helpers;
 
 /// <summary>
 /// A list backed by arrays from the array pool.
@@ -166,7 +167,10 @@ public struct TemporaryList<T> : IList<T>, IDisposable
 #if !NETSTANDARD
             if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
 #endif
+            {
+                // Clear any reference types so that the GC can reclaim them
                 Array.Clear(items, 0, count);
+            }
         }
         version++;
     }
@@ -179,11 +183,18 @@ public struct TemporaryList<T> : IList<T>, IDisposable
     {
         version++;
         count = 0;
+        if (items != null)
+        {
 #if !NETSTANDARD
-        arrayPool?.Return(items!, RuntimeHelpers.IsReferenceOrContainsReferences<T>());
-#else
-        arrayPool?.Return(items!, true);
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
 #endif
+            {
+                // Clear any reference types so that the GC can reclaim them
+                Array.Clear(items, 0, count);
+            }
+            arrayPool?.Return(items, false);
+            items = null;
+        }
     }
 
     public readonly IEnumerator<T> GetEnumerator()
@@ -242,7 +253,14 @@ public struct TemporaryList<T> : IList<T>, IDisposable
     readonly IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
+/// <summary>
+/// Factory class used by the collection builder to correctly initialise a <see cref="TemporaryList{T}"/>.
+/// </summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public static class TemporaryListBuilder
 {
+    /// <summary>
+    /// Factory method used by the collection builder to correctly initialise a <see cref="TemporaryList{T}"/>.
+    /// </summary>
     public static TemporaryList<T> Create<T>(ReadOnlySpan<T> values) => new(values);
 }

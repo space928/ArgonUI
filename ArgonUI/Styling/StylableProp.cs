@@ -1,11 +1,13 @@
 ﻿using ArgonUI.UIElements;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ArgonUI.Styling;
 
+[DebuggerDisplay("{name,nq}({value})")]
 public class StylableProp<T> : IStylableProperty
 {
     internal T value;
@@ -20,10 +22,9 @@ public class StylableProp<T> : IStylableProperty
     private readonly bool isImplicit;
     private Transition? transition;
     private Action<UIElement, IStylableProperty> applyFunc;
-    // Used by the styling engine to optimise which properties need to be reapplied
-    private int nameHash;
+    private string name;
 
-    // Used by the implicit conversion operator
+    // Used by the implicit conversion operator, this is a shared temporary instance of a stylable prop used to avoid small allocations.
     [ThreadStatic]
     private static StylableProp<T>? implicitProp;
 
@@ -33,13 +34,13 @@ public class StylableProp<T> : IStylableProperty
     /// </summary>
     /// <param name="value"></param>
     /// <param name="applyFunc"></param>
-    /// <param name="nameHash"></param>
-    public StylableProp(T value, Action<UIElement, IStylableProperty> applyFunc, int nameHash)
+    /// <param name="name"></param>
+    public StylableProp(T value, Action<UIElement, IStylableProperty> applyFunc, string name)
     {
         this.isImplicit = false;
         this.value = value;
         this.applyFunc = applyFunc;
-        this.nameHash = nameHash;
+        this.name = name;
     }
 
     /// <summary>
@@ -50,6 +51,7 @@ public class StylableProp<T> : IStylableProperty
     {
         this.isImplicit = true;
         this.value = value;
+        this.name = string.Empty;
         applyFunc = default!;
     }
 
@@ -63,10 +65,15 @@ public class StylableProp<T> : IStylableProperty
             //onSet?.Start(ref this);
         }
     }
+    object? IStylableProperty.Value 
+    { 
+        get => value; 
+        set => Value = (T)value!; 
+    }
 
     public Transition? Transition { get => transition; set => transition = value; }
     public event Action<IStylableProperty>? OnStylablePropChanged;
-    int IStylableProperty.NameHash => nameHash;
+    public string Name => name;
 
     /// <summary>
     /// Used internally by setters for <see cref="StylableProp{T}"/>.
@@ -97,20 +104,8 @@ public class StylableProp<T> : IStylableProperty
             this.value = value.value;
             this.transition = value.transition;
             this.applyFunc = value.applyFunc;
-            this.nameHash = value.nameHash;
+            this.name = value.name;
         }
-
-        OnStylablePropChanged?.Invoke(this);
-    }
-
-    public object? GetValue() => value;
-
-    public void SetValue(object? value)
-    {
-        if (value is T val)
-            this.value = val;
-        else
-            throw new InvalidCastException();
 
         OnStylablePropChanged?.Invoke(this);
     }
@@ -134,6 +129,13 @@ public class StylableProp<T> : IStylableProperty
         implicitProp.value = value;
         return implicitProp;
     }
+
+    /*public static explicit operator IStylableProperty(T value)
+    {
+        implicitProp ??= new(default!);
+        implicitProp.value = value;
+        return implicitProp;
+    }*/
 
     public static explicit operator T(StylableProp<T> value) => value!.Value;
 }

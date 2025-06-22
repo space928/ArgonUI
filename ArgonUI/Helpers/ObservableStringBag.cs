@@ -8,10 +8,15 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace ArgonUI;
+namespace ArgonUI.Helpers;
 
+/// <summary>
+/// A type which allows for fast addition, iteration, and contents testing of items. This type 
+/// also implements <see cref="INotifyCollectionChanged"/>. This type allows multiple copies 
+/// of the same item to exist within it.
+/// </summary>
 [DebuggerDisplay("Count = {Count}")]
-public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyCollection<string>, INotifyCollectionChanged//, IReadOnlySet<string>
+public class ObservableStringBag : ICollection<string>, ISet<string>, IReadOnlyCollection<string>, INotifyCollectionChanged//, IReadOnlySet<string>
 {
     private string[] array;
     private int[] hashes;
@@ -21,12 +26,12 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
 
     public event NotifyCollectionChangedEventHandler? CollectionChanged;
 
-    public ObservableStringSet() : this(0)
+    public ObservableStringBag() : this(0)
     {
 
     }
 
-    public ObservableStringSet(int capacity)
+    public ObservableStringBag(int capacity)
     {
         array = new string[capacity];
         hashes = new int[capacity];
@@ -38,17 +43,17 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
         count = 0;
     }
 
-    public ObservableStringSet(ICollection<string> collection) : this(collection.Count)
+    public ObservableStringBag(ICollection<string> collection) : this(collection.Count)
     {
         AddRange(collection);
     }
 
-    public ObservableStringSet(IEnumerable<string> collection) : this(8)
+    public ObservableStringBag(IEnumerable<string> collection) : this(8)
     {
         AddRange(collection);
     }
 
-    public ObservableStringSet(params string[] collection) : this(collection.Length)
+    public ObservableStringBag(params string[] collection) : this(collection.Length)
     {
         AddRange(collection);
     }
@@ -133,7 +138,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
         // https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
         //return unchecked((int)(((ulong)(uint)hash * (ulong)mod) >> 32));
         // Only works for mods which are powers of 2.
-        return hash & (mod - 1);
+        return hash & mod - 1;
     }
 
     private ref int FindSlot(ReadOnlySpan<char> item, int hash)
@@ -178,7 +183,9 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
         int cand = slot;
         do
         {
-            if (buckets[cand] == 0)
+            // Linear probing for a free space
+            int bucket = buckets[cand];
+            if (bucket == 0)
             {
                 buckets[cand] = index + 1; // Indices in the buckets array are 1-based such that 0 can be used as a sentinel.
                 return true;
@@ -305,11 +312,10 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
         if (AddToSet(hash, count))
         {
             count++;
-            CollectionChanged?.Invoke(this, new(NotifyCollectionChangedAction.Add, item));
+            //CollectionChanged?.Invoke(this, new(NotifyCollectionChangedAction.Add, item));
             return true;
         }
 
-        // No free slot found, this shouldn't happen...
         return false;
     }
 
@@ -332,7 +338,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
         }
 
         bool allAdded = true;
-        if (items is ObservableStringSet stringSet)
+        if (items is ObservableStringBag stringSet)
         {
             // Fast path for string sets to avoid additional hashing
             for (int i = 0; i < stringSet.count; i++)
@@ -367,7 +373,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
 
     public bool RemoveRange(IEnumerable<string> items)
     {
-        if (items is ObservableStringSet otherSet)
+        if (items is ObservableStringBag otherSet)
             return RemoveSet(otherSet);
 
         bool removedAll = true;
@@ -390,7 +396,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
         return removedAll;
     }
 
-    private bool RemoveSet(ObservableStringSet otherSet)
+    private bool RemoveSet(ObservableStringBag otherSet)
     {
         // Fast path that avoid rehashing when removing a set of items
         bool removedAll = true;
@@ -563,7 +569,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
             && Count >= collection.Count)
             return false;
 
-        if (other is ObservableStringSet stringSet)
+        if (other is ObservableStringBag stringSet)
         {
             for (int i = 0; i < count; i++)
             {
@@ -577,7 +583,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
 
         // Lazy approach to take advantage of fast membership testing
         // probably slower if either set only has a few elements
-        return IsProperSubsetOf(new ObservableStringSet(other));
+        return IsProperSubsetOf(new ObservableStringBag(other));
     }
 
     public bool IsProperSupersetOf(IEnumerable<string> other)
@@ -586,7 +592,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
             && Count <= collection.Count)
             return false;
 
-        if (other is ObservableStringSet stringSet)
+        if (other is ObservableStringBag stringSet)
         {
             for (int i = 0; i < stringSet.count; i++)
             {
@@ -614,7 +620,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
             && collection.Count > Count)
             return false;
 
-        if (other is ObservableStringSet stringSet)
+        if (other is ObservableStringBag stringSet)
         {
             for (int i = 0; i < count; i++)
             {
@@ -628,7 +634,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
 
         // Lazy approach to take advantage of fast membership testing
         // probably slower if either set only has a few elements
-        return IsSubsetOf(new ObservableStringSet(other));
+        return IsSubsetOf(new ObservableStringBag(other));
     }
 
     public bool IsSupersetOf(IEnumerable<string> other)
@@ -637,7 +643,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
             && Count < collection.Count)
             return false;
 
-        if (other is ObservableStringSet stringSet)
+        if (other is ObservableStringBag stringSet)
         {
             for (int i = 0; i < stringSet.count; i++)
             {
@@ -661,7 +667,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
 
     public bool Overlaps(IEnumerable<string> other)
     {
-        if (other is ObservableStringSet stringSet)
+        if (other is ObservableStringBag stringSet)
         {
             for (int i = 0; i < stringSet.count; i++)
             {
@@ -685,7 +691,7 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
             && collection.Count != Count)
             return false;
 
-        if (other is ObservableStringSet stringSet)
+        if (other is ObservableStringBag stringSet)
         {
             for (int i = 0; i < stringSet.count; i++)
             {
@@ -710,22 +716,22 @@ public class ObservableStringSet : ICollection<string>, ISet<string>, IReadOnlyC
 
     public IEnumerator<string> GetEnumerator()
     {
-        return new ObservableStringSetEnumerator(this);
+        return new ObservableStringBagEnumerator(this);
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return new ObservableStringSetEnumerator(this);
+        return new ObservableStringBagEnumerator(this);
     }
 
-    public struct ObservableStringSetEnumerator : IEnumerator<string>
+    public struct ObservableStringBagEnumerator : IEnumerator<string>
     {
-        private readonly ObservableStringSet list;
+        private readonly ObservableStringBag list;
         private readonly int version;
         private int index;
         private string? current;
 
-        internal ObservableStringSetEnumerator(ObservableStringSet list)
+        internal ObservableStringBagEnumerator(ObservableStringBag list)
         {
             this.list = list;
             version = list.version;

@@ -140,7 +140,7 @@ public partial class ReactiveObjectGenerator
                 sb.AppendLine($"public static StylableProp<{prop.FieldType}> {prop.PropName}({prop.FieldType} value)");
                 using (sb.EnterCurlyBracket())
                 {
-                    sb.AppendLine($"return new(value, Apply_{prop.PropName}, {prop.PropName.AsSpan().GetStringHash()});");
+                    sb.AppendLine($"return new(value, Apply_{prop.PropName}, \"{prop.PropName}\");");
                 }
                 sb.AppendLine();
 

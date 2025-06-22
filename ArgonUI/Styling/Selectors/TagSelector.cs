@@ -1,4 +1,5 @@
-﻿using ArgonUI.UIElements;
+﻿using ArgonUI.Helpers;
+using ArgonUI.UIElements;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,6 +14,8 @@ namespace ArgonUI.Styling.Selectors;
 public class TagSelector : IStyleSelector, IFlattenedStyleSelector, ICollection<string>
 {
     private readonly ObservableStringSet tags;
+
+    public event Action<IStyleSelector>? RequestReevaluation;
 
     public int Count => tags.Count;
     public bool IsReadOnly => false;
@@ -43,18 +46,35 @@ public class TagSelector : IStyleSelector, IFlattenedStyleSelector, ICollection<
     {
         return treeChange switch
         {
-            UIElementTreeChange.ElementAdded => StyleSelectorUpdate.ChangedElement,
+            UIElementTreeChange.ElementAdded => StyleSelectorUpdate.AddedElement,
             UIElementTreeChange.ElementRemoved => StyleSelectorUpdate.None,
             _ => propertyName == nameof(UIElement.Tags) ? StyleSelectorUpdate.ChangedElement : StyleSelectorUpdate.None,
         };
     }
 
-    public void Add(string item) => tags.Add(item);
-    public void Clear() => tags.Clear();
+    public void Add(string item)
+    {
+        if (tags.Add(item))
+            RequestReevaluation?.Invoke(this);
+    }
+
+    public void Clear()
+    {
+        tags.Clear();
+        RequestReevaluation?.Invoke(this);
+    }
+
+    public bool Remove(string item)
+    {
+        var res = tags.Remove(item);
+        if (res)
+            RequestReevaluation?.Invoke(this);
+        return res;
+    }
+
     public bool Contains(string item) => tags.Contains(item);
     public void CopyTo(string[] array, int arrayIndex) => tags.CopyTo(array, arrayIndex);
     public IEnumerator<string> GetEnumerator() => tags.GetEnumerator();
-    public bool Remove(string item) => tags.Remove(item);
     IEnumerator IEnumerable.GetEnumerator() => tags.GetEnumerator();
 
     public override string ToString()

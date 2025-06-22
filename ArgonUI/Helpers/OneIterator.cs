@@ -3,13 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
-namespace ArgonUI;
+namespace ArgonUI.Helpers;
 
 /// <summary>
 /// A simple iterator that just wraps a single element.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-internal readonly struct OneEnumerable<T> : IEnumerable<T>
+public readonly struct OneEnumerable<T> : IEnumerable<T>
 {
     private readonly T value;
 

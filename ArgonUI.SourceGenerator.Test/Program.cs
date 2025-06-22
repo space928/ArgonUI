@@ -1,4 +1,5 @@
-﻿using ArgonUI.UIElements;
+﻿using ArgonUI.Styling;
+using ArgonUI.UIElements;
 using System.Numerics;
 
 namespace ArgonUI.SourceGenerator.Test;
@@ -44,6 +45,16 @@ public partial class ReactiveTest : UIElement
 
     private float GetTest3() => 1;
     private void SetTest4(float value) => test4 = value;
+
+    public static StylableProp<int> SpecialExample9(int value)
+    {
+        return new(value, Apply_SpecialExample9, "SpecialExample9");
+    }
+
+    public static void Apply_SpecialExample9(UIElement elem, IStylableProperty prop)
+    {
+
+    }
 }
 
 [MergeStyles("ArgonUI.SourceGenerator.Test")]

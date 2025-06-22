@@ -11,16 +11,37 @@ namespace ArgonUI.Styling.Selectors;
 /// <para/>
 /// For more complex chaining see the <see cref="CompoundSelector"/>.
 /// </summary>
-/// <param name="a"></param>
-/// <param name="b"></param>
-public readonly struct AndSelector(IStyleSelector a, IStyleSelector b) : IStyleSelector, IFlattenedStyleSelector
+public readonly struct AndSelector : IStyleSelector, IFlattenedStyleSelector
 {
-    private readonly IStyleSelector a = a;
-    private readonly IStyleSelector b = b;
-    private readonly IFlattenedStyleSelector? af = a as IFlattenedStyleSelector;
-    private readonly IFlattenedStyleSelector? bf = b as IFlattenedStyleSelector;
+    private readonly IStyleSelector a;
+    private readonly IStyleSelector b;
+    private readonly IFlattenedStyleSelector? af;
+    private readonly IFlattenedStyleSelector? bf;
+    private readonly List<Action<IStyleSelector>> requestReevaluationListeners;
 
     public readonly bool SupportsFlattenedSelection => af != null && bf != null;
+
+    public event Action<IStyleSelector> RequestReevaluation
+    {
+        add => requestReevaluationListeners.Add(value);
+        remove => requestReevaluationListeners.Remove(value);
+    }
+
+    public AndSelector(IStyleSelector a, IStyleSelector b)
+    {
+        this.a = a;
+        this.b = b;
+        this.af = a as IFlattenedStyleSelector;
+        this.bf = b as IFlattenedStyleSelector;
+        requestReevaluationListeners = [];
+        a.RequestReevaluation += Child_RequestReevaluation; ;
+    }
+
+    private void Child_RequestReevaluation(IStyleSelector obj)
+    {
+        foreach (var listener in requestReevaluationListeners)
+            listener(obj);
+    }
 
     public readonly IEnumerable<UIElement> Filter(UIElement elementTree)
     {
@@ -50,5 +71,10 @@ public readonly struct AndSelector(IStyleSelector a, IStyleSelector b) : IStyleS
     {
         // Higher values mean more needs updating, so simply return the maximum of the two selectors.
         return (StyleSelectorUpdate)Math.Max((int)a.NeedsReevaluation(target, propertyName, treeChange), (int)b.NeedsReevaluation(target, propertyName, treeChange));
+    }
+
+    public override string ToString()
+    {
+        return $"[{a} && {b}]";
     }
 }

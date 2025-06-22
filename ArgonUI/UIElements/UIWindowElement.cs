@@ -3,6 +3,7 @@ using ArgonUI.SourceGenerator;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -10,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
+[DebuggerDisplay("{GetType().Name,nq} ({Window.Title} - {name}, {Children.Count} children)")]
 public partial class UIWindowElement : UIContainer
 {
     private readonly List<UIElement> children;

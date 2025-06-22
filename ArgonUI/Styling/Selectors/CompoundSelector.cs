@@ -15,6 +15,8 @@ public class CompoundSelector : IStyleSelector, IFlattenedStyleSelector, ICollec
     private readonly List<IStyleSelector> selectors;
     private readonly bool canUseFlattened;
 
+    public event Action<IStyleSelector>? RequestReevaluation;
+
     public int Count => selectors.Count;
     public bool IsReadOnly => true;
 
@@ -25,16 +27,22 @@ public class CompoundSelector : IStyleSelector, IFlattenedStyleSelector, ICollec
         selectors = [];
     }
 
+    public CompoundSelector(params IStyleSelector[] selectors) : this(selectors.AsEnumerable())
+    { }
+
     public CompoundSelector(IEnumerable<IStyleSelector> selectors)
     {
         this.selectors = new(selectors);
         canUseFlattened = this.selectors.All(x => x is IFlattenedStyleSelector);
+
+        foreach (var selector in this.selectors)
+            selector.RequestReevaluation += Child_RequestReevaluation;
     }
 
-    public CompoundSelector(params IStyleSelector[] selectors)
+    private void Child_RequestReevaluation(IStyleSelector obj)
     {
-        this.selectors = new(selectors);
-        canUseFlattened = this.selectors.All(x => x is IFlattenedStyleSelector);
+        // Bubble events up
+        RequestReevaluation?.Invoke(obj);
     }
 
     public IEnumerable<UIElement> Filter(UIElement elementTree)
@@ -67,14 +75,36 @@ public class CompoundSelector : IStyleSelector, IFlattenedStyleSelector, ICollec
         return (StyleSelectorUpdate)selectors.Max(x=>(int)x.NeedsReevaluation(target, propertyName, treeChange));
     }
 
+    public void Add(IStyleSelector item)
+    {
+        selectors.Add(item);
+        item.RequestReevaluation += Child_RequestReevaluation;
+        RequestReevaluation?.Invoke(this);
+    }
+
+    public void Clear()
+    {
+        foreach (var selector in selectors)
+            selector.RequestReevaluation -= Child_RequestReevaluation;
+        selectors.Clear();
+        RequestReevaluation?.Invoke(this);
+    }
+
+    public bool Remove(IStyleSelector item)
+    {
+        var res = selectors.Remove(item);
+        if (res)
+        {
+            item.RequestReevaluation -= Child_RequestReevaluation;
+            RequestReevaluation?.Invoke(this);
+        }
+        return res;
+    }
+
     public bool Contains(IStyleSelector item) => selectors.Contains(item);
     public void CopyTo(IStyleSelector[] array, int arrayIndex) => selectors.CopyTo(array, arrayIndex);
     public IEnumerator<IStyleSelector> GetEnumerator() => selectors.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => selectors.GetEnumerator();
-
-    public bool Remove(IStyleSelector item) => throw new NotSupportedException();
-    public void Add(IStyleSelector item) => throw new NotSupportedException();
-    public void Clear() => throw new NotSupportedException();
 
     public override string ToString()
     {

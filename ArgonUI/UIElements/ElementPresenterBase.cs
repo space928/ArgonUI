@@ -14,7 +14,7 @@ namespace ArgonUI.UIElements;
 /// </summary>
 public abstract class ElementPresenterBase : UIContainer
 {
-    private readonly OneReadOnlyList<UIElement> childList = [];
+    private OneReadOnlyList<UIElement> childList = [];
 
     public override IReadOnlyList<UIElement> Children => childList;
 
@@ -57,7 +57,7 @@ public abstract class ElementPresenterBase : UIContainer
 
     public override void AddChild(UIElement child)
     {
-        if (childList.value == null)
+        if (childList.value != null)
             throw new InvalidOperationException("Can't add more than one element to an ElementPresenter. " +
                 "Consider wrapping the elements to add in another container element.");
         childList.value = child;
@@ -68,9 +68,7 @@ public abstract class ElementPresenterBase : UIContainer
     public override void AddChildren(IEnumerable<UIElement> children)
     {
         foreach (UIElement child in children)
-        {
             AddChild(child);
-        }
     }
 
     public override void InsertChild(UIElement child, int index)
@@ -85,6 +83,7 @@ public abstract class ElementPresenterBase : UIContainer
         if (child != null && childList.value == child)
         {
             child.Parent = null;
+            childList.value = null;
             OnChildElementChanged(child, Styling.UIElementTreeChange.ElementRemoved);
             return true;
         }
@@ -100,26 +99,35 @@ public abstract class ElementPresenterBase : UIContainer
     public override void ClearChildren()
     {
         var child = childList.value;
-        childList.value = null;
         if (child != null)
         {
+            childList.value = null;
             child.Parent = null;
             OnChildElementChanged(child, Styling.UIElementTreeChange.ElementRemoved);
         }
     }
 }
 
-public class OneReadOnlyList<T> : IReadOnlyList<T>
+/// <summary>
+/// A very simple struct that implements <see cref="IReadOnlyList{T}"/>. 
+/// It can contain 1 or 0 elements, noting that an element of 
+/// <see langword="null"/> can't be stored in this list.
+/// </summary>
+/// <typeparam name="T">Any non-nullable type</typeparam>
+public struct OneReadOnlyList<T> : IReadOnlyList<T>
+    where T : notnull
 {
     public T? value;
 
-    public T this[int index] => value!;
-    public int Count => 1;
+    public readonly T this[int index] => value!;
+    public readonly int Count => value == null ? 0 : 1;
 
-    public IEnumerator<T> GetEnumerator()
+    public readonly IEnumerator<T> GetEnumerator()
     {
-        yield return value!;
+        if (value == null)
+            yield break;
+        yield return value;
     }
 
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    readonly IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

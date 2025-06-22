@@ -9,7 +9,7 @@
 	<IsRoslynComponent>true</IsRoslynComponent>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<Title>ArgonUI.SourceGenerator</Title>
-	<Version>0.3.11-pre</Version>
+	<Version>0.3.12-pre</Version>
 	<Authors>Thomas Mathieson</Authors>
 	<Copyright>Copyright © Thomas Mathieson 2025</Copyright>
 	<PackageProjectUrl>https://github.com/space928/ArgonUI</PackageProjectUrl>

@@ -16,4 +16,8 @@ public interface INotifyStyleChanged
     /// all stylable properties were removed.
     /// </summary>
     public event Action<Style, IStylableProperty?> OnStylePropRemoved;
+    /// <summary>
+    /// Notifies the subscriber that the style's selector has been changed and all properties will need to be re-applied.
+    /// </summary>
+    public event Action<Style> OnStyleSelectorChanged;
 }

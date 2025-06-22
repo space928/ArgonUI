@@ -11,6 +11,8 @@ namespace ArgonUI.Styling.Selectors;
 public class AllSelector : IStyleSelector, IFlattenedStyleSelector
 {
     public static readonly AllSelector Shared = new();
+
+    public event Action<IStyleSelector>? RequestReevaluation;
     public bool SupportsFlattenedSelection => true;
 
     public IEnumerable<UIElement> Filter(UIElement elementTree)
@@ -36,7 +38,7 @@ public class AllSelector : IStyleSelector, IFlattenedStyleSelector
     public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange)
     {
         // If an element was added to the tree, it needs to be re-styled. In any other case, do nothing.
-        return treeChange == UIElementTreeChange.ElementAdded ? StyleSelectorUpdate.ChangedElement : StyleSelectorUpdate.None;
+        return treeChange == UIElementTreeChange.ElementAdded ? StyleSelectorUpdate.AddedElement : StyleSelectorUpdate.None;
     }
 
     public IEnumerable<UIElement> Filter(IEnumerable<UIElement> elements)

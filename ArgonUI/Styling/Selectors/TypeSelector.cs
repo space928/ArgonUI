@@ -14,6 +14,8 @@ public class TypeSelector : IStyleSelector, IFlattenedStyleSelector, ICollection
 {
     private readonly HashSet<Type> types;
 
+    public event Action<IStyleSelector>? RequestReevaluation;
+
     public int Count => types.Count;
     public bool IsReadOnly => false;
     public bool SupportsFlattenedSelection => true;
@@ -42,14 +44,31 @@ public class TypeSelector : IStyleSelector, IFlattenedStyleSelector, ICollection
     public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange)
     {
         // If an element was added to the tree, it might need to be re-styled. In any other case, do nothing.
-        return treeChange == UIElementTreeChange.ElementAdded ? StyleSelectorUpdate.ChangedElement : StyleSelectorUpdate.None;
+        return treeChange == UIElementTreeChange.ElementAdded ? StyleSelectorUpdate.AddedElement : StyleSelectorUpdate.None;
     }
 
-    public void Add(Type item) => types.Add(item);
-    public void Clear() => types.Clear();
+    public void Add(Type item)
+    {
+        if (types.Add(item))
+            RequestReevaluation?.Invoke(this);
+    }
+
+    public void Clear()
+    {
+        types.Clear();
+        RequestReevaluation?.Invoke(this);
+    }
+
+    public bool Remove(Type item)
+    {
+        var res = types.Remove(item);
+        if (res)
+            RequestReevaluation?.Invoke(this);
+        return res;
+    }
+
     public bool Contains(Type item) => types.Contains(item);
     public void CopyTo(Type[] array, int arrayIndex) => types.CopyTo(array, arrayIndex);
-    public bool Remove(Type item) => types.Remove(item);
 
     public override string ToString()
     {

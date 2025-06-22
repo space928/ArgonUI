@@ -6,12 +6,15 @@ using System.Collections.Generic;
 using ArgonUI.Styling;
 using ArgonUI.SourceGenerator;
 using System.Runtime.CompilerServices;
+using ArgonUI.Helpers;
+using System.Diagnostics;
 
 namespace ArgonUI.UIElements;
 
 /// <summary>
 /// Represents the base class for all renderable UI elements in ArgonUI.
 /// </summary>
+[DebuggerDisplay("{GetType().Name,nq} ({name})")]
 #pragma warning disable AR1004 // "Fields annotated with [Reactive] must be in a class which derives from UIElement"; this is the UIElement class so this doesn't apply
 public abstract partial class UIElement : ReactiveObject, IDisposable
 #pragma warning restore AR1004
@@ -21,7 +24,7 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// The name associated with this UIElement.
     /// </summary>
     [Reactive]
-    private string name = nameof(UIElement);
+    private string name;
     /// <summary>
     /// Whether this element can receive keyboard focus.
     /// </summary>
@@ -42,58 +45,58 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// These can also be used similar to HTML classes with a <see cref="Styling.Selectors.TagSelector"/>
     /// to style elements selectivly based on their tags.
     /// </summary>
-    public ObservableStringSet Tags { get; } = [];
+    public ObservableStringBag Tags { get; } = [];
 
     /// <summary>
     /// The absolute width of this element. Set to 0 to use automatic sizing.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout)]
+    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
     private int width;
     /// <summary>
     /// The absolute height of this element. Set to 0 to use automatic sizing.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout)]
+    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
     private int height;
     //public Vector2 Pivot { get => pivot; set => UpdateProperty(ref pivot, value); }
     /// <summary>
     /// How this element should be aligned vertically relative to it's parent.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout)]
+    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
     private Alignment verticalAlignment;
     /// <summary>
     /// How this element should be aligned horizontally relative to it's parent.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout)]
+    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
     private Alignment horizontalAlignment;
     /// <summary>
     /// How much space (in pixels) to leave around each edge of the element relative to the parent. Specified as a vector of (Top, Right, Bottom, Left).
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout)]
+    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
     private Vector4 margin;
     /// <summary>
     /// Controls which elements are shown on top of each other. Higher z-indexes will be shown on top.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout)]
+    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
     private int zIndex;
     /// <summary>
     /// The smallest width to shrink this element down to when using automatic sizing.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout)]
+    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
     private int minWidth = -1;
     /// <summary>
     /// The smallest height to shrink this element down to when using automatic sizing.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout)]
+    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
     private int minHeight = -1;
     /// <summary>
     /// The largest width to expand this element up to when using automatic sizing.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout)]
+    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
     private int maxWidth = -1;
     /// <summary>
     /// The largest height to expand this element up to when using automatic sizing.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout)]
+    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
     private int maxHeight = -1;
 
     /// <summary>
@@ -282,7 +285,10 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
 
     public UIElement()
     {
+        name = GetType().Name;
+        // Hook up property changed listeners for this object to propagate to styles and parents.
         PropertyChanged += (o, e) => OnChildPropertyChanged(e.PropertyName);
+        Tags.CollectionChanged += (o, e) => OnChildPropertyChanged(nameof(Tags));
     }
 
     /// <summary>
@@ -453,6 +459,10 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <summary>
     /// Invokes a <see cref="ChildPropertyChanged"/> event on all parent elements. 
     /// </summary>
+    /// <remarks>
+    /// When implementing custom UIElements, if you're having problems with styles not responding to property 
+    /// changes, it's worth checking that this method is being invoked.
+    /// </remarks>
     /// <param name="propertyName">The property which was changed.</param>
     protected void OnChildPropertyChanged([CallerMemberName] string? propertyName = null)
     {
@@ -466,6 +476,12 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <summary>
     /// Invokes a <see cref="ChildElementChanged"/> event on all parent elements.
     /// </summary>
+    /// <remarks>
+    /// This method is intended to be invoked from classes deriving from 
+    /// <see cref="UIContainer"/>. It must be called whenever a child element is 
+    /// added, removed, or moved from the <see cref="UIContainer"/> for the
+    /// styling system to work correctly.
+    /// </remarks>
     /// <param name="target">The <see cref="UIElement"/> which was added/removed.</param>
     /// <param name="treeChange">The tree operation affecting this element.</param>
     protected static void OnChildElementChanged(UIElement target, UIElementTreeChange treeChange)

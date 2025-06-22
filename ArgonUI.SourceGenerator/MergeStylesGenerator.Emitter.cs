@@ -61,7 +61,7 @@ public partial class MergeStylesGenerator
                 sb.AppendLine($"public static StylableProp<{prop.Type}> {prop.Name}({prop.Type} value)");
                 using (sb.EnterCurlyBracket())
                 {
-                    sb.AppendLine($"return new(value, Apply_{prop.Name}, {prop.Name.AsSpan().GetStringHash()});");
+                    sb.AppendLine($"return new(value, Apply_{prop.Name}, \"{prop.Name}\");");
                 }
                 sb.AppendLine();
 

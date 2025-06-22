@@ -28,6 +28,11 @@ public interface IStyleSelector
     /// <param name="treeChange">Whether a child element was added or removed from the UI tree.</param>
     /// <returns>Which, if any, elements need to be re-evaluated and potentially re-styled.</returns>
     public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange);
+    /// <summary>
+    /// This event is invoked by the selector when it's properties have been changed, such that it 
+    /// must re-select the elements it controls.
+    /// </summary>
+    public event Action<IStyleSelector> RequestReevaluation;
 }
 
 /// <summary>
@@ -69,6 +74,10 @@ public enum StyleSelectorUpdate
     /// No elements need to be re-styled.
     /// </summary>
     None,
+    /// <summary>
+    /// This is functionally very similar to <see cref="ChangedElement"/>, but it guarantees that no elements were UN-selected by the selector.
+    /// </summary>
+    AddedElement,
     /// <summary>
     /// The element which resulted in the <see cref="IStyleSelector.NeedsReevaluation(UIElement, string?, UIElementTreeChange)"/>
     /// call being raised might require re-styling.
