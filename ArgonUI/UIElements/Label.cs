@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
+[UIClonable]
 public partial class Label : UIElement
 {
     /// <summary>
@@ -24,6 +25,7 @@ public partial class Label : UIElement
     /// </summary>
     [Reactive("TextColour"), Dirty(DirtyFlags.Layout), Stylable] protected Vector4 colour;
 
+    [UICloneableField]
     protected BMFont? font;
 
     public override int DesiredWidth => (int)Font.Measure(text, size).X;

@@ -26,8 +26,9 @@ public interface IStyleSelector
     /// <param name="target">The element which was affected.</param>
     /// <param name="propertyName">The name of the property which was changed; <see langword="null"/> if a tree change occurred.</param>
     /// <param name="treeChange">Whether a child element was added or removed from the UI tree.</param>
+    /// <param name="inputChange">Whether an input event which might affect this style has occurred.</param>
     /// <returns>Which, if any, elements need to be re-evaluated and potentially re-styled.</returns>
-    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange);
+    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange, UIElementInputChange inputChange);
     /// <summary>
     /// This event is invoked by the selector when it's properties have been changed, such that it 
     /// must re-select the elements it controls.
@@ -64,7 +65,7 @@ public interface IFlattenedStyleSelector
 }
 
 /// <summary>
-/// The result of a <see cref="IStyleSelector.NeedsReevaluation(UIElement, string?, UIElementTreeChange)"/>
+/// The result of a <see cref="IStyleSelector.NeedsReevaluation(UIElement, string?, UIElementTreeChange, UIElementInputChange)"/>
 /// check. Allows the style selector to tell the styling engine which (if any) elements might
 /// need reevaluating for styling.
 /// </summary>
@@ -79,7 +80,7 @@ public enum StyleSelectorUpdate
     /// </summary>
     AddedElement,
     /// <summary>
-    /// The element which resulted in the <see cref="IStyleSelector.NeedsReevaluation(UIElement, string?, UIElementTreeChange)"/>
+    /// The element which resulted in the <see cref="IStyleSelector.NeedsReevaluation(UIElement, string?, UIElementTreeChange, UIElementInputChange)"/>
     /// call being raised might require re-styling.
     /// </summary>
     ChangedElement,
@@ -106,4 +107,17 @@ public enum UIElementTreeChange
     /// An element (and it's subtree) were removed from the current tree of <see cref="UIElement"/>. The entire branch was pruned.
     /// </summary>
     ElementRemoved,
+}
+
+/// <summary>
+/// Represents an abstracted input event received by a <see cref="UIElement"/>.
+/// This is used by the styling system to determine when a selector need re-evaluating.
+/// </summary>
+public enum UIElementInputChange
+{
+    None,
+    MouseHover,
+    MousePress,
+    KeyPress,
+    Focus
 }

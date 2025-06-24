@@ -1,4 +1,5 @@
 ﻿using ArgonUI.Drawing;
+using ArgonUI.SourceGenerator;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,7 +10,8 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
-public class Panel : UIContainer
+[UIClonable]
+public partial class Panel : UIContainer
 {
     public override IReadOnlyList<UIElement> Children => throw new NotImplementedException();
 

@@ -63,6 +63,7 @@ public partial class StyleSet : IList<Style>
         uiElement.ChildElementChanged += HandleChildElementChanged;
         uiElement.ChildPropertyChanged += HandleElementPropertyChanged;
         uiElement.PropertyChanged += HandleElementPropertyChanged;
+        uiElement.OnStylableInputEvent += HandleElementInputChanged;
         ApplyStyles(uiElement);
     }
 
@@ -81,6 +82,7 @@ public partial class StyleSet : IList<Style>
         uiElement.ChildElementChanged -= HandleChildElementChanged;
         uiElement.ChildPropertyChanged -= HandleElementPropertyChanged;
         uiElement.PropertyChanged -= HandleElementPropertyChanged;
+        uiElement.OnStylableInputEvent -= HandleElementInputChanged;
 
         if (applyParentStyle)
             ApplyParentStyles(uiElement, null, false);
@@ -91,24 +93,29 @@ public partial class StyleSet : IList<Style>
     #region Event Handlers
     private void HandleChildElementChanged(UIElement target, UIElementTreeChange treeChange)
     {
-        HandleElementChanged(target, null, treeChange);
+        HandleElementChanged(target, null, treeChange, UIElementInputChange.None);
     }
 
     private void HandleElementPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs)
     {
-        HandleElementChanged((sender as UIElement)!, eventArgs.PropertyName, UIElementTreeChange.None);
+        HandleElementChanged((sender as UIElement)!, eventArgs.PropertyName, UIElementTreeChange.None, UIElementInputChange.None);
     }
 
     private void HandleElementPropertyChanged(UIElement target, string? propertyName)
     {
-        HandleElementChanged(target, propertyName, UIElementTreeChange.None);
+        HandleElementChanged(target, propertyName, UIElementTreeChange.None, UIElementInputChange.None);
     }
 
-    private void HandleElementChanged(UIElement target, string? propertyName, UIElementTreeChange treeChange)
+    private void HandleElementInputChanged(UIElement target, UIElementInputChange inputChange)
+    {
+        HandleElementChanged(target, null, UIElementTreeChange.None, inputChange);
+    }
+
+    private void HandleElementChanged(UIElement target, string? propertyName, UIElementTreeChange treeChange, UIElementInputChange inputChange)
     {
         foreach (var style in styles)
         {
-            var res = style.NeedsReevaluation(target, propertyName, treeChange);
+            var res = style.NeedsReevaluation(target, propertyName, treeChange, inputChange);
             switch (res)
             {
                 case StyleSelectorUpdate.AddedElement:

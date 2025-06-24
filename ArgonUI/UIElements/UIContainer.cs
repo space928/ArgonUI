@@ -26,7 +26,7 @@ public abstract partial class UIContainer : UIElement
     /// Adds a <see cref="UIElement"/> as a child to this element.
     /// </summary>
     /// <remarks>
-    /// Implementors should make sure to invoke <see cref="UIElement.OnChildElementChanged(UIElement, UIElementTreeChange)"/>.
+    /// Implementors should make sure to invoke <see cref="RegisterChild(UIElement)"/>.
     /// </remarks>
     /// <param name="child">The element to add as a child.</param>
     public abstract void AddChild(UIElement child);
@@ -34,7 +34,7 @@ public abstract partial class UIContainer : UIElement
     /// Adds a collection of <see cref="UIElement"/> as children to this element.
     /// </summary>
     /// <remarks>
-    /// Implementors should make sure to invoke <see cref="UIElement.OnChildElementChanged(UIElement, UIElementTreeChange)"/> 
+    /// Implementors should make sure to invoke <see cref="RegisterChild(UIElement)"/> 
     /// for each child added.
     /// </remarks>
     /// <param name="children">The elements to add as children.</param>
@@ -43,7 +43,7 @@ public abstract partial class UIContainer : UIElement
     /// Inserts a <see cref="UIElement"/> as a child to this element at a specific index.
     /// </summary>
     /// <remarks>
-    /// Implementors should make sure to invoke <see cref="UIElement.OnChildElementChanged(UIElement, UIElementTreeChange)"/>.
+    /// Implementors should make sure to invoke <see cref="RegisterChild(UIElement)"/>.
     /// </remarks>
     /// <param name="child">The element to insert as a child.</param>
     /// <param name="index">The index in the list of children to insert the new element at.</param>
@@ -53,7 +53,7 @@ public abstract partial class UIContainer : UIElement
     /// Removes a <see cref="UIElement"/> from this element's list of children.
     /// </summary>
     /// <remarks>
-    /// Implementors should make sure to invoke <see cref="UIElement.OnChildElementChanged(UIElement, UIElementTreeChange)"/>.
+    /// Implementors should make sure to invoke <see cref="UnregisterChild(UIElement)"/>.
     /// </remarks>
     /// <param name="child">The child element to remove.</param>
     /// <returns><see langword="true"/> if the element was a direct child of this element.</returns>
@@ -62,7 +62,7 @@ public abstract partial class UIContainer : UIElement
     /// Removes a collection of <see cref="UIElement"/> from this element's list of children.
     /// </summary>
     /// <remarks>
-    /// Implementors should make sure to invoke <see cref="UIElement.OnChildElementChanged(UIElement, UIElementTreeChange)"/>.
+    /// Implementors should make sure to invoke <see cref="UnregisterChild(UIElement)"/>.
     /// </remarks>
     /// <param name="children">The collection of children to remove.</param>
     public abstract void RemoveChildren(IEnumerable<UIElement> children);
@@ -71,10 +71,77 @@ public abstract partial class UIContainer : UIElement
     /// Removes all children from this element.
     /// </summary>
     /// <remarks>
-    /// Implementors should make sure to invoke <see cref="UIElement.OnChildElementChanged(UIElement, UIElementTreeChange)"/>.
+    /// Implementors should make sure to invoke <see cref="UnregisterChild(UIElement)"/>.
     /// </remarks>
     public abstract void ClearChildren();
 
     //internal void Layout();
     // Draw() must layout and draw all children
+
+    /// <summary>
+    /// Registration method which must be called by implementors after adding a new child element.
+    /// </summary>
+    /// <param name="element"></param>
+    protected void RegisterChild(UIElement element)
+    {
+        if (element.Parent == this)
+            return;
+        if (element.Parent != null)
+            throw new InvalidOperationException($"The element '{element}' cannot be a child of more than one container. Make sure to remove the element from it's current parent first!");
+        element.Parent = this;
+        if (window != null)
+        {
+            // We need to recursively update the depth of the entire subtree being added.
+            element.treeDepth = treeDepth + 1;
+            if (element is UIContainer container)
+                container.UpdateTreeDepth();
+
+            element.window = window;
+            element.InvokeOnLoaded();
+        }
+        OnChildElementChanged(element, UIElementTreeChange.ElementAdded);
+    }
+
+    /// <summary>
+    /// Recursively computes the tree depth of all child elements.
+    /// </summary>
+    private void UpdateTreeDepth()
+    {
+        foreach (var child in Children)
+        {
+            child.treeDepth = treeDepth + 1;
+            if (child is UIContainer container)
+                container.UpdateTreeDepth();
+        }
+    }
+
+    /// <summary>
+    /// Registration method which must be called by implementors after removing a child element.
+    /// </summary>
+    /// <param name="element"></param>
+    protected void UnregisterChild(UIElement element)
+    {
+        if (element.Parent == null)
+            return; // Element has already been unregistered, shouldn't happen normally...
+
+        element.Parent = null;
+        element.window = null;
+        element.treeDepth = -1;
+        element.InvokeOnUnloaded();
+        OnChildElementChanged(element, UIElementTreeChange.ElementRemoved);
+    }
+
+    public override UIElement Clone(UIElement target)
+    {
+        base.Clone(target);
+        if (target is UIContainer t)
+        {
+            t.innerPadding = innerPadding;
+            t.clipContents = clipContents;
+
+            foreach (UIElement child in Children)
+                t.AddChild(child);
+        }
+        return target;
+    }
 }

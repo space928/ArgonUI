@@ -63,7 +63,8 @@ internal class UIRenderer
         if ((element.DirtyFlags & DirtyFlags.Layout) != 0)
         {
             element.ClearDirtyFlag(DirtyFlags.Layout);
-            element.Layout();
+            if (element.Visible != Visibility.Hidden)
+                element.Layout();
         }
 
         if (element is UIContainer container && (element.DirtyFlags & DirtyFlags.ChildLayout) != 0)
@@ -82,7 +83,8 @@ internal class UIRenderer
         if ((element.DirtyFlags & DirtyFlags.Content) != 0)
         {
             element.ClearDirtyFlag(DirtyFlags.Content);
-            element.Draw(element.RenderedBoundsAbsolute, drawGraph.DrawCommands);
+            if (element.Visible == Visibility.Visible)
+                element.Draw(element.RenderedBoundsAbsolute, drawGraph.DrawCommands);
 
             drawBounds = drawBounds.Union(element.RenderedBoundsAbsolute);
         }

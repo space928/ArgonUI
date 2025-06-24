@@ -8,6 +8,7 @@ using ArgonUI.SourceGenerator;
 using System.Runtime.CompilerServices;
 using ArgonUI.Helpers;
 using System.Diagnostics;
+using System.ComponentModel;
 
 namespace ArgonUI.UIElements;
 
@@ -30,6 +31,16 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// </summary>
     [Reactive]
     private bool focusable = true;
+    /// <summary>
+    /// Whether this element is enabled. Disabled UI elements will still be drawn, but will not receive input events.
+    /// </summary>
+    [Reactive, Stylable]
+    private bool enabled = true;
+    /// <summary>
+    /// Whether this element and it's children should be drawn. Elements which are not visible will not receive input events, nor will they participate in layout or drawing.
+    /// </summary>
+    [Reactive, Stylable, Dirty(DirtyFlags.Layout)]
+    private Visibility visible = Visibility.Visible;
     /// <summary>
     /// A set of stylable properties to be applied to this UIElement and it's decendants.
     /// </summary>
@@ -130,6 +141,30 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// Gets the height of the element when using automatic sizing.
     /// </summary>
     public virtual int DesiredHeight => Height;
+    /// <summary>
+    /// Gets whether the mouse is currently hovering over this element.
+    /// </summary>
+    public bool IsHovered => isHovered;
+    /// <summary>
+    /// Gets whether the mouse is currently clicking on this element.
+    /// </summary>
+    public bool IsPressed => isPressed;
+    /// <summary>
+    /// Gets whether this element currently has input focus.
+    /// </summary>
+    public bool IsFocused => isFocused;
+    /// <summary>
+    /// Gets the window this element is current a member of. Returns <see langword="null"/> if the element is not attached to a window.
+    /// </summary>
+    public UIWindow? Window => window;
+    /// <summary>
+    /// Gets the depth of this element in the tree of UI Elements attached to the window. This is 
+    /// effectively a count of how many <see cref="Parent"/>s this element has.
+    /// <para/>
+    /// Returns <c>-1</c> if this element isn't attached to a window.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+    public int TreeDepth => treeDepth;
     #endregion
 
     // Read only
@@ -138,6 +173,11 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     private Bounds2D renderedBounds; // Relative to parent
     private Bounds2D renderedBoundsAbsolute;
     private DirtyFlags dirtyFlag = DirtyFlags.Layout | DirtyFlags.Content;
+    private bool isHovered;
+    private bool isPressed;
+    private bool isFocused;
+    internal UIWindow? window;
+    internal protected int treeDepth = -1;
 
     #region Events
     /// <summary>
@@ -239,6 +279,7 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     public event ChildElementChangedHandler? ChildElementChanged;
 
     protected internal event Action? OnDirty; // Mostly for internal use
+    protected internal event Action<UIElement, UIElementInputChange>? OnStylableInputEvent;
 
     /// <summary>
     /// Represents the method that handles <see cref="ChildPropertyChanged"/> events.
@@ -247,10 +288,10 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <param name="propertyName">The name of the property which was changed.</param>
     public delegate void ChildPropertyChangedHandler(UIElement target, string? propertyName);
     /// <summary>
-    /// 
+    /// Represents the method that handles <see cref="ChildElementChanged"/> events.
     /// </summary>
-    /// <param name="target"></param>
-    /// <param name="treeChange"></param>
+    /// <param name="target">The <see cref="UIElement"/> which is involved in the tree operation.</param>
+    /// <param name="treeChange">What change occurred to the UI tree that triggered this event.</param>
     public delegate void ChildElementChangedHandler(UIElement target, UIElementTreeChange treeChange);
     /// <summary>
     /// Represents the method that handles mouse down/up events.
@@ -300,7 +341,7 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
         UpdateProperty(ref dirtyFlag, dirtyFlag | flags, nameof(DirtyFlags));
 
         // Propagate dirty flags up
-        if ((flags & DirtyFlags.Layout) != 0) 
+        if ((flags & DirtyFlags.Layout) != 0)
             Parent?.Dirty(DirtyFlags.ChildLayout);
 
         if ((flags & DirtyFlags.Content) != 0)
@@ -331,6 +372,51 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
         style?.Unregister(this);
     }
 
+    /// <summary>
+    /// Creates a deep copy of this <see cref="UIElement"/>.
+    /// </summary>
+    /// <remarks>
+    /// Implementors of new <see cref="UIElement"/> subclasses can implement this method as follows:<para/>
+    /// <c>
+    /// public override UIElement Clone() => Clone(new MyUIElement());
+    /// </c>
+    /// </remarks>
+    /// <returns>A new <see cref="UIElement"/> instance with the same properties as this instance.</returns>
+    public abstract UIElement Clone();
+
+    /// <summary>
+    /// Copies this <see cref="UIElement"/>'s properties into those of a target <see cref="UIElement"/>.
+    /// </summary>
+    /// <remarks>
+    /// This method is used internally by <see cref="Clone()"/>. Implementors of new <see cref="UIElement"/> 
+    /// subclasses should override this method to clone properties defined in their subclass.
+    /// </remarks>
+    /// <param name="target">The <see cref="UIElement"/> to clone our properties into.</param>
+    /// <returns>The <see cref="UIElement"/> passed into <paramref name="target"/>.</returns>
+    public virtual UIElement Clone(UIElement target)
+    {
+        // TODO: Having an analyser check we didn't miss any fields for cloning might be good.
+        //       I'm hesitant to fully automate parameter cloning (through reflection or source
+        //       generation), as there is some logic to apply to it which could be complex.
+        // Not sure if we should invalidate dirty flags here or not...
+        target.dirtyFlag = DirtyFlags.Layout;
+        target.focusable = focusable;
+        target.height = height;
+        target.width = width;
+        target.Style = style; // Don't deep-copy the style
+        target.horizontalAlignment = horizontalAlignment;
+        target.verticalAlignment = verticalAlignment;
+        target.margin = margin;
+        target.maxHeight = maxHeight;
+        target.maxWidth = maxWidth;
+        target.minHeight = minHeight;
+        target.minWidth = minWidth;
+        target.zIndex = zIndex;
+        target.name = name;
+
+        return target;
+    }
+
     // Internal
     /// <summary>
     /// Computes the bounds that this element occupies given the bounds of it's parent.
@@ -338,7 +424,7 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <param name="parent">The bounds of the parent element.</param>
     /// <returns>The bounds occupied by this element in screen space.</returns>
     protected virtual Bounds2D ComputeBounds(Bounds2D parent)
-    { 
+    {
         // Apply limits to the width and height
         var parentWidth = parent.Width;
         var parentHeight = parent.Height;
@@ -436,24 +522,73 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
         return bounds;
     }
 
-    internal void InvokeOnMouseDown(InputManager inputManager, MouseButton button) => OnMouseDown?.Invoke(inputManager, button);
-    internal void InvokeOnMouseUp(InputManager inputManager, MouseButton button) => OnMouseUp?.Invoke(inputManager, button);
-    internal void InvokeOnMouseEnter(InputManager inputManager, VectorInt2 pos) => OnMouseEnter?.Invoke(inputManager, pos);
-    internal void InvokeOnMouseLeave(InputManager inputManager, VectorInt2 pos) => OnMouseLeave?.Invoke(inputManager, pos);
-    internal void InvokeOnMouseOver(InputManager inputManager, VectorInt2 pos) => OnMouseOver?.Invoke(inputManager, pos);
+    internal void InvokeOnMouseDown(InputManager inputManager, MouseButton button)
+    {
+        isPressed = true;
+        OnStylableInputEvent?.Invoke(this, UIElementInputChange.MousePress);
+        OnMouseDown?.Invoke(inputManager, button);
+    }
+    internal void InvokeOnMouseUp(InputManager inputManager, MouseButton button)
+    {
+        isPressed = false;
+        OnStylableInputEvent?.Invoke(this, UIElementInputChange.MousePress);
+        OnMouseUp?.Invoke(inputManager, button);
+    }
+    internal void InvokeOnMouseEnter(InputManager inputManager, VectorInt2 pos)
+    {
+        isHovered = true;
+        OnStylableInputEvent?.Invoke(this, UIElementInputChange.MouseHover);
+        OnMouseEnter?.Invoke(inputManager, pos);
+    }
+    internal void InvokeOnMouseLeave(InputManager inputManager, VectorInt2 pos)
+    {
+        isHovered = false;
+        OnStylableInputEvent?.Invoke(this, UIElementInputChange.MouseHover);
+        OnMouseLeave?.Invoke(inputManager, pos);
+    }
+    internal void InvokeOnMouseOver(InputManager inputManager, VectorInt2 pos)
+    {
+        isHovered = true;
+        //OnStylableInputEvent?.Invoke(UIElementInputChange.MouseHover);
+        OnMouseOver?.Invoke(inputManager, pos);
+    }
     internal void InvokeOnDoubleClick(InputManager inputManager, MouseButton button) => OnDoubleClick?.Invoke(inputManager, button);
     internal void InvokeOnMouseWheel(InputManager inputManager, Vector2 delta) => OnMouseWheel?.Invoke(inputManager, delta);
-    internal void InvokeOnKeyDown(InputManager inputManager, KeyCode key) => OnKeyDown?.Invoke(inputManager, key);
-    internal void InvokeOnKeyUp(InputManager inputManager, KeyCode key) => OnKeyUp?.Invoke(inputManager, key);
+    internal void InvokeOnKeyDown(InputManager inputManager, KeyCode key)
+    {
+        OnStylableInputEvent?.Invoke(this, UIElementInputChange.KeyPress);
+        OnKeyDown?.Invoke(inputManager, key);
+    }
+    internal void InvokeOnKeyUp(InputManager inputManager, KeyCode key)
+    {
+        OnStylableInputEvent?.Invoke(this, UIElementInputChange.KeyPress);
+        OnKeyUp?.Invoke(inputManager, key);
+    }
     internal void InvokeOnDragStart(InputManager inputManager) => OnDragStart?.Invoke(inputManager);
     internal void InvokeOnDrop(InputManager inputManager) => OnDrop?.Invoke(inputManager);
     internal void InvokeOnDragEnter(InputManager inputManager) => OnDragEnter?.Invoke(inputManager);
     internal void InvokeOnDragLeave(InputManager inputManager) => OnDragLeave?.Invoke(inputManager);
     internal void InvokeOnDragOver(InputManager inputManager) => OnDragOver?.Invoke(inputManager);
-    internal void InvokeOnFocusGot(InputManager inputManager) => OnFocusGot?.Invoke(inputManager);
-    internal void InvokeOnFocusLost(InputManager inputManager) => OnFocusLost?.Invoke(inputManager);
-    internal void InvokeOnLoaded() => OnLoaded?.Invoke();
-    internal void InvokeOnUnloaded() => OnUnloaded?.Invoke();
+    internal void InvokeOnFocusGot(InputManager inputManager)
+    {
+        isFocused = true;
+        OnStylableInputEvent?.Invoke(this, UIElementInputChange.Focus);
+        OnFocusGot?.Invoke(inputManager);
+    }
+    internal void InvokeOnFocusLost(InputManager inputManager)
+    {
+        isFocused = false;
+        OnStylableInputEvent?.Invoke(this, UIElementInputChange.Focus);
+        OnFocusLost?.Invoke(inputManager);
+    }
+    internal void InvokeOnLoaded()
+    {
+        OnLoaded?.Invoke();
+    }
+    internal void InvokeOnUnloaded()
+    {
+        OnUnloaded?.Invoke();
+    }
     internal void InvokeOnDraw() => OnDraw?.Invoke();
 
     /// <summary>
@@ -494,6 +629,9 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     }
 }
 
+/// <summary>
+/// Describes the horizontal/vertical alignment of a <see cref="UIElement"/> within it's bounding rectangle.
+/// </summary>
 public enum Alignment
 {
     Left,
@@ -506,4 +644,23 @@ public enum Alignment
     Bottom = Right,
     Start = Left,
     End = Right
+}
+
+/// <summary>
+/// Describes whether or not a <see cref="UIElement"/> should be drawn, and whether it should participate in layout.
+/// </summary>
+public enum Visibility
+{
+    /// <summary>
+    /// This element participates in layout and drawing as normal.
+    /// </summary>
+    Visible,
+    /// <summary>
+    /// This element does not participate in layout or drawing, no layout space is reserved for this element. Hidden elements do not receive input events.
+    /// </summary>
+    Hidden,
+    /// <summary>
+    /// This element does not participate in drawing, but still participates in layout events, layout space is reserved for this element. Hidden elements do not receive input events.
+    /// </summary>
+    SkipDrawing
 }

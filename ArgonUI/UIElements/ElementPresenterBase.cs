@@ -34,23 +34,17 @@ public abstract class ElementPresenterBase : UIContainer
                 var child = childList.value;
                 childList.value = null;
                 if (child != null)
-                {
-                    child.Parent = null;
-                    OnChildElementChanged(child, Styling.UIElementTreeChange.ElementRemoved);
-                }
+                    UnregisterChild(child);
             }
             else
             {
                 var old = childList.value;
                 childList.value = value;
-                value.Parent = this;
 
                 if (old != null)
-                {
-                    old.Parent = null;
-                    OnChildElementChanged(old, Styling.UIElementTreeChange.ElementRemoved);
-                }
-                OnChildElementChanged(value, Styling.UIElementTreeChange.ElementAdded);
+                    UnregisterChild(old);
+
+                RegisterChild(value);
             }
         }
     }
@@ -61,8 +55,7 @@ public abstract class ElementPresenterBase : UIContainer
             throw new InvalidOperationException("Can't add more than one element to an ElementPresenter. " +
                 "Consider wrapping the elements to add in another container element.");
         childList.value = child;
-        child.Parent = this;
-        OnChildElementChanged(child, Styling.UIElementTreeChange.ElementAdded);
+        RegisterChild(child);
     }
 
     public override void AddChildren(IEnumerable<UIElement> children)
@@ -82,9 +75,8 @@ public abstract class ElementPresenterBase : UIContainer
     {
         if (child != null && childList.value == child)
         {
-            child.Parent = null;
             childList.value = null;
-            OnChildElementChanged(child, Styling.UIElementTreeChange.ElementRemoved);
+            UnregisterChild(child);
             return true;
         }
         return false;
@@ -102,8 +94,7 @@ public abstract class ElementPresenterBase : UIContainer
         if (child != null)
         {
             childList.value = null;
-            child.Parent = null;
-            OnChildElementChanged(child, Styling.UIElementTreeChange.ElementRemoved);
+            UnregisterChild(child);
         }
     }
 }

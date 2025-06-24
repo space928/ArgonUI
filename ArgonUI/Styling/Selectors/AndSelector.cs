@@ -67,10 +67,10 @@ public readonly struct AndSelector : IStyleSelector, IFlattenedStyleSelector
         return bf.Filter(af.Filter(elements));
     }
 
-    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange)
+    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange, UIElementInputChange inputChange)
     {
         // Higher values mean more needs updating, so simply return the maximum of the two selectors.
-        return (StyleSelectorUpdate)Math.Max((int)a.NeedsReevaluation(target, propertyName, treeChange), (int)b.NeedsReevaluation(target, propertyName, treeChange));
+        return (StyleSelectorUpdate)Math.Max((int)a.NeedsReevaluation(target, propertyName, treeChange, inputChange), (int)b.NeedsReevaluation(target, propertyName, treeChange, inputChange));
     }
 
     public override string ToString()

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
+[UIClonable]
 public partial class Rectangle : UIElement
 {
     /// <summary>

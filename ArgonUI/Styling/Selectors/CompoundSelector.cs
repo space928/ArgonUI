@@ -69,10 +69,10 @@ public class CompoundSelector : IStyleSelector, IFlattenedStyleSelector, ICollec
         return ret;
     }
 
-    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange)
+    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange, UIElementInputChange inputChange)
     {
         // Higher values mean more needs updating, so simply return the maximum of the selectors.
-        return (StyleSelectorUpdate)selectors.Max(x=>(int)x.NeedsReevaluation(target, propertyName, treeChange));
+        return (StyleSelectorUpdate)selectors.Max(x=>(int)x.NeedsReevaluation(target, propertyName, treeChange, inputChange));
     }
 
     public void Add(IStyleSelector item)

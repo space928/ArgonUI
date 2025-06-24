@@ -41,7 +41,7 @@ public class TypeSelector : IStyleSelector, IFlattenedStyleSelector, ICollection
         }
     }
 
-    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange)
+    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange, UIElementInputChange inputChange)
     {
         // If an element was added to the tree, it might need to be re-styled. In any other case, do nothing.
         return treeChange == UIElementTreeChange.ElementAdded ? StyleSelectorUpdate.AddedElement : StyleSelectorUpdate.None;

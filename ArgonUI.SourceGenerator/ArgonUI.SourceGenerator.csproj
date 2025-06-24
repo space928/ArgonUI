@@ -9,7 +9,7 @@
 	<IsRoslynComponent>true</IsRoslynComponent>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	<Title>ArgonUI.SourceGenerator</Title>
-	<Version>0.3.12-pre</Version>
+	<Version>0.3.18-pre</Version>
 	<Authors>Thomas Mathieson</Authors>
 	<Copyright>Copyright © Thomas Mathieson 2025</Copyright>
 	<PackageProjectUrl>https://github.com/space928/ArgonUI</PackageProjectUrl>
@@ -35,6 +35,7 @@
     <Compile Include="..\ArgonUI\SourceGenerator\MergeStylesAttribute.cs" Link="Included\MergeStylesAttribute.cs" />
     <Compile Include="..\ArgonUI\SourceGenerator\ReactiveAttribute.cs" Link="Included\ReactiveAttribute.cs" />
     <Compile Include="..\ArgonUI\SourceGenerator\StylableAttribute.cs" Link="Included\StylableAttribute.cs" />
+    <Compile Include="..\ArgonUI\SourceGenerator\UIClonableAttribute.cs" Link="Included\UIClonableAttribute.cs" />
     <Compile Include="..\ArgonUI\UIElements\DirtyFlags.cs" Link="Included\DirtyFlags.cs" />
   </ItemGroup>
 

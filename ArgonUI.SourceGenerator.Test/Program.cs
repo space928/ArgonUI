@@ -12,6 +12,7 @@ internal class Program
     }
 }
 
+[UIClonable]
 public partial class ReactiveTest : UIElement
 {
     [Reactive("SpecialExample")] private int exampleValue;
@@ -29,6 +30,7 @@ public partial class ReactiveTest : UIElement
     /// Very dimensional.
     /// </remarks>
     [Reactive, Stylable] private Vector2 testVec;
+    [Reactive] private ComplexValue? testComplex;
 
     public void Test()
     {
@@ -41,6 +43,7 @@ public partial class ReactiveTest : UIElement
         TestVec = new Vector2();
         ReactiveTest_Styles.SpecialExample(1);
         Test_Styles.Test4(1);
+        testComplex?.Clone();
     }
 
     private float GetTest3() => 1;
@@ -83,5 +86,24 @@ public abstract class UIElement : ReactiveObject
 
         if ((flags & DirtyFlags.Content) != 0)
             Parent?.Dirty(DirtyFlags.ChildContent);
+    }
+
+    public abstract UIElement Clone();
+}
+
+public class ComplexValue
+{
+    public float a;
+    public float b;
+}
+
+public static partial class ExtensionMethods
+{
+    public static ComplexValue Clone(this ComplexValue obj)
+    {
+        var clone = new ComplexValue();
+        clone.a = obj.a;
+        clone.b = obj.b;
+        return clone;
     }
 }

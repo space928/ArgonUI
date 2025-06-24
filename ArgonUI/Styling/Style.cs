@@ -201,11 +201,11 @@ public class Style : ICollection<IStylableProperty>, IReadOnlyDictionary<string,
         OnStyleSelectorChanged?.Invoke(this);
     }
 
-    /// <inheritdoc cref="IStyleSelector.NeedsReevaluation(UIElement, string?, UIElementTreeChange)"/>
-    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange)
+    /// <inheritdoc cref="IStyleSelector.NeedsReevaluation(UIElement, string?, UIElementTreeChange, UIElementInputChange)"/>
+    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange, UIElementInputChange inputChange)
     {
-        return Selector?.NeedsReevaluation(target, propertyName, treeChange)
-            ?? AllSelector.Shared.NeedsReevaluation(target, propertyName, treeChange);
+        return Selector?.NeedsReevaluation(target, propertyName, treeChange, inputChange)
+            ?? AllSelector.Shared.NeedsReevaluation(target, propertyName, treeChange, inputChange);
     }
 
     public void Add(IStylableProperty item)

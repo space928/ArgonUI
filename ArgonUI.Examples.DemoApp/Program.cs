@@ -2,6 +2,7 @@
 using ArgonUI.UIElements;
 using ArgonUI.Backends.OpenGL;
 using ArgonUI.Styling;
+using ArgonUI.Styling.Selectors;
 
 namespace ArgonUI.Examples.DemoApp;
 
@@ -39,14 +40,6 @@ public class Program
             ((OpenGLWindow)wnd).LogLatency(DateTime.UtcNow.Ticks, "rect OnMouseEnter");
             rect.logLatencyNow = true;
 #endif
-
-            rect.Colour = new(1f, .5f, .1f, 1);
-            rect.Rounding = 20;
-        };
-        rect.OnMouseLeave += (im, pos) =>
-        {
-            rect.Colour = new(0, .8f, .25f, 1);
-            rect.Rounding = 5;
         };
 
         wnd.RootElement.AddChild(label);
@@ -57,6 +50,17 @@ public class Program
             new Style([
                 ArgonUIStyles.Rounding(10),
                 ArgonUIStyles.FontSize(30),
+            ])
+        ]);
+
+        rect.Style = new([
+            new Style([
+                ArgonUIStyles.Rounding(10),
+                ArgonUIStyles.Colour(new(0, 1.0f, 0.1f, 1)),
+            ]),
+            new Style(new HoveredSelector(), [
+                ArgonUIStyles.Rounding(5),
+                ArgonUIStyles.Colour(new(1, .1f, 0, 1)),
             ])
         ]);
 

@@ -42,7 +42,7 @@ public class TagSelector : IStyleSelector, IFlattenedStyleSelector, ICollection<
         }
     }
 
-    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange)
+    public StyleSelectorUpdate NeedsReevaluation(UIElement target, string? propertyName, UIElementTreeChange treeChange, UIElementInputChange inputChange)
     {
         return treeChange switch
         {

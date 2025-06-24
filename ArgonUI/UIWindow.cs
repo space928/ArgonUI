@@ -53,6 +53,10 @@ public abstract class UIWindow : IDisposable
     /// Gets or sets the maximum rate at which the window can be redrawn.
     /// </summary>
     public double MaxUpdateRate { get => (double)TicksPerSecond / updatePeriod; set => updatePeriod = (long)(TicksPerSecond / value); }
+    /// <summary>
+    /// Gets the instance of the <see cref="ArgonUI.Input.InputManager"/> associated with this window.
+    /// </summary>
+    public InputManager InputManager => inputManager;
 
     /// <summary>
     /// An event invoked when the window is first loaded and ready to be drawn to.

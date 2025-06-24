@@ -73,4 +73,12 @@ internal static class DiagnosticDescriptors
         Category,
         DiagnosticSeverity.Error,
         true);
+
+    public static DiagnosticDescriptor ClonableMustDeriveFromUIElement => new(
+        "AR3001",
+        "UIClonableAttribute annotated type must derive from 'ArgonUI.UIElements.UIElement'",
+        "The type '{0}' annotated with a UIClonableAttribute must derive from 'ArgonUI.UIElements.UIElement'.",
+        Category,
+        DiagnosticSeverity.Warning,
+        true);
 }

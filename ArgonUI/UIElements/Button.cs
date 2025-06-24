@@ -12,7 +12,7 @@ namespace ArgonUI.UIElements;
 
 public class Button : ContentButton
 {
-    private readonly Label label;
+    private Label label;
 
     /// <summary>
     /// The label for this button.
@@ -29,5 +29,18 @@ public class Button : ContentButton
     {
         label = new Label();
         base.Content = label;
+    }
+
+    public override UIElement Clone() => Clone(new Button());
+
+    public override UIElement Clone(UIElement target)
+    {
+        base.Clone(target);
+        if (target is Button t)
+        {
+            t.label = (Label)label.Clone();
+            ((ContentButton)t).Content = t.label;
+        }
+        return target;
     }
 }

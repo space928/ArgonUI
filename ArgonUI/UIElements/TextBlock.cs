@@ -12,6 +12,7 @@ namespace ArgonUI.UIElements;
 /// <summary>
 /// Similar to a <see cref="Label"/> but with additional features such as text wrapping.
 /// </summary>
+[UIClonable]
 public partial class TextBlock : Label
 {
     /// <summary>
