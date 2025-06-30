@@ -226,7 +226,7 @@ public class StyleTests
         Assert.AreEqual((Thickness)colourBlue, ccbtn.InnerPadding);
 
         // Now change the inner padding property to the cbtn
-        cbtn.Style[0][nameof(ArgonUIStyles.InnerPadding)].Value = colourRed;
+        cbtn.Style[0][nameof(ArgonUIStyles.InnerPadding)].Value = (Thickness)colourRed;
 
         Assert.AreEqual((Thickness)colourGreen, wnd.RootElement.InnerPadding);
         Assert.AreEqual((Thickness)colourGreen, btn.InnerPadding);
