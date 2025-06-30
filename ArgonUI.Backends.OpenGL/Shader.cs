@@ -1,4 +1,5 @@
-﻿using Silk.NET.OpenGL;
+﻿using ArgonUI.Helpers;
+using Silk.NET.OpenGL;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,7 +16,7 @@ public partial class Shader : IDisposable
     private readonly uint handle;
     private readonly GL gl;
 
-    private readonly Dictionary<string, int> uniformLocationCache = [];
+    private readonly StringDict<int> uniformLocationCache = [];//Dictionary<string, int> uniformLocationCache = [];
 
     public Shader(GL gl, string vertexPath, string fragmentPath, string[]? defines = null)
     {

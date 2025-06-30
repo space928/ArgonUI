@@ -18,12 +18,12 @@ public partial class TextBlock : Label
     /// <summary>
     /// Specifies how the text in this text block is horizontally aligned.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Content), Stylable] 
+    [Reactive, Dirty(DirtyFlags.Content), Stylable]
     protected TextAlignment alignment;
     /// <summary>
     /// Justifies the contents of this text block to fill it's width.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Content), Stylable] 
+    [Reactive, Dirty(DirtyFlags.Content), Stylable]
     protected bool justify;
     //protected bool justifyLastLine;
 
@@ -31,36 +31,33 @@ public partial class TextBlock : Label
     /// <summary>
     /// 
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Content), Stylable] 
+    [Reactive, Dirty(DirtyFlags.Content), Stylable]
     protected float wordSpacing;
     [Reactive, Dirty(DirtyFlags.Content), Stylable]
     protected float charSpacing;
-    [Reactive, Dirty(DirtyFlags.Content), Stylable] 
+    [Reactive, Dirty(DirtyFlags.Content), Stylable]
     protected float stretchX;
 
-    [Reactive, Dirty(DirtyFlags.Content), Stylable] 
+    [Reactive, Dirty(DirtyFlags.Content), Stylable]
     protected float lineSpacing;
-    [Reactive, Dirty(DirtyFlags.Content), Stylable] 
+    [Reactive, Dirty(DirtyFlags.Content), Stylable]
     protected float firstLineIndent;
-    [Reactive, Dirty(DirtyFlags.Content), Stylable] 
+    [Reactive, Dirty(DirtyFlags.Content), Stylable]
     protected float indent;
 
-    [Reactive, Dirty(DirtyFlags.Content), Stylable] 
+    [Reactive, Dirty(DirtyFlags.Content), Stylable]
     protected float skew;
-    [Reactive, Dirty(DirtyFlags.Content), Stylable] 
+    [Reactive, Dirty(DirtyFlags.Content), Stylable]
     protected float weight;
 
-    protected internal override void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands)
+    protected internal override void Draw(IDrawContext ctx)
     {
-        commands.Clear();
         if (text == null)
             return;
-        commands.Add(ctx =>
-        {
-            var fnt = font ?? Fonts.Default;
-            fnt.FontTexture?.ExecuteDrawCommands(ctx);
-            ctx.DrawText(bounds, size, text, fnt, colour, wordSpacing, charSpacing, skew, weight);
-        });
+
+        var fnt = font ?? Fonts.Default;
+        fnt.FontTexture?.ExecuteDrawCommands(ctx);
+        ctx.DrawText(RenderedBoundsAbsolute, size, text, fnt, colour, wordSpacing, charSpacing, skew, weight);
     }
 }
 

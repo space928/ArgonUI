@@ -15,6 +15,12 @@ public struct VectorInt2 : IEquatable<VectorInt2>, IFormattable
         this.y = y;
     }
 
+    public VectorInt2(Vector2 vec)
+    {
+        this.x = (int)vec.X;
+        this.y = (int)vec.Y;
+    }
+
     public static readonly VectorInt2 Zero = new();
     public static readonly VectorInt2 One = new(1, 1);
 

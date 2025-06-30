@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -83,6 +84,9 @@ public class InputManager
         var hit = RaycastElement(sender, mousePos);
         if (hit != lastHoveredElement)
         {
+#if DEBUG && DEBUG_PROP_UPDATES
+            Debug.WriteLine($"[InputManager] Hovered element changed {lastHoveredElement} -> {hit}");
+#endif
             lastHoveredElement?.InvokeOnMouseLeave(this, mousePos);
             hit?.InvokeOnMouseEnter(this, mousePos);
         }

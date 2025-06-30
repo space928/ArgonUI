@@ -1,14 +1,16 @@
 ﻿using ArgonUI.Drawing;
+using ArgonUI.Helpers;
 using ArgonUI.Input;
-using System.Numerics;
+using ArgonUI.SourceGenerator;
+using ArgonUI.Styling;
 using System;
 using System.Collections.Generic;
-using ArgonUI.Styling;
-using ArgonUI.SourceGenerator;
-using System.Runtime.CompilerServices;
-using ArgonUI.Helpers;
-using System.Diagnostics;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Linq;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace ArgonUI.UIElements;
 
@@ -50,13 +52,13 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <summary>
     /// Gets the parent UIElement.
     /// </summary>
-    public UIElement? Parent { get; internal set; }
+    public UIContainer? Parent { get; internal set; }
     /// <summary>
     /// A list of string tags which can be used to store metadata about this element. 
     /// These can also be used similar to HTML classes with a <see cref="Styling.Selectors.TagSelector"/>
     /// to style elements selectivly based on their tags.
     /// </summary>
-    public ObservableStringBag Tags { get; } = [];
+    public ObservableStringSet Tags { get; } = [];
 
     /// <summary>
     /// The absolute width of this element. Set to 0 to use automatic sizing.
@@ -83,7 +85,7 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// How much space (in pixels) to leave around each edge of the element relative to the parent. Specified as a vector of (Top, Right, Bottom, Left).
     /// </summary>
     [Reactive, Dirty(DirtyFlags.Layout), Stylable]
-    private Vector4 margin;
+    private Thickness margin;
     /// <summary>
     /// Controls which elements are shown on top of each other. Higher z-indexes will be shown on top.
     /// </summary>
@@ -113,19 +115,19 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <summary>
     /// The rendered width of the element after it was last drawn. (Read-only)
     /// </summary>
-    public float RenderedWidth { get => renderedWidth; protected set => renderedWidth = value; }
+    public float RenderedWidth { get => renderedWidth; internal set => renderedWidth = value; }
     /// <summary>
     /// The rendered height of the element after it was last drawn. (Read-only)
     /// </summary>
-    public float RenderedHeight { get => renderedHeight; protected set => renderedHeight = value; }
+    public float RenderedHeight { get => renderedHeight; internal set => renderedHeight = value; }
     /// <summary>
     /// The computed bounds of the element after it was last drawn relative to it's parent. (Read-only)
     /// </summary>
-    public Bounds2D RenderedBounds { get => renderedBounds; protected set => renderedBounds = value; }
+    public Bounds2D RenderedBounds { get => renderedBounds; internal set => renderedBounds = value; }
     /// <summary>
     /// The computed bounds of the element after it was last drawn. (Read-only)
     /// </summary>
-    public Bounds2D RenderedBoundsAbsolute { get => renderedBoundsAbsolute; protected set => renderedBoundsAbsolute = value; }
+    public Bounds2D RenderedBoundsAbsolute { get => renderedBoundsAbsolute; internal set => renderedBoundsAbsolute = value; }
     /// <summary>
     /// Gets the dirty flags of this element which determine if the element needs to be re-rendered or re-laid out.
     /// </summary>
@@ -136,11 +138,11 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <summary>
     /// Gets the width of the element when using automatic sizing.
     /// </summary>
-    public virtual int DesiredWidth => Width;
+    public int DesiredWidth => desiredSize.x;
     /// <summary>
     /// Gets the height of the element when using automatic sizing.
     /// </summary>
-    public virtual int DesiredHeight => Height;
+    public int DesiredHeight => desiredSize.y;
     /// <summary>
     /// Gets whether the mouse is currently hovering over this element.
     /// </summary>
@@ -172,7 +174,13 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     private float renderedHeight;
     private Bounds2D renderedBounds; // Relative to parent
     private Bounds2D renderedBoundsAbsolute;
-    private DirtyFlags dirtyFlag = DirtyFlags.Layout | DirtyFlags.Content;
+    /// <summary>
+    /// This is used internally by the rendering engine. It's defined as the union of the current 
+    /// <see cref="RenderedBoundsAbsolute"/> and the previous rendered bounds.
+    /// </summary>
+    internal Bounds2D invalidatedRenderBounds;
+    internal VectorInt2 desiredSize;
+    private DirtyFlags dirtyFlag = DirtyFlags.ContentAndLayout;
     private bool isHovered;
     private bool isPressed;
     private bool isFocused;
@@ -338,14 +346,26 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <param name="flags">Which <see cref="ArgonUI.UIElements.DirtyFlags"/> to set.</param>
     public virtual void Dirty(DirtyFlags flags)
     {
-        UpdateProperty(ref dirtyFlag, dirtyFlag | flags, nameof(DirtyFlags));
+        var prev = dirtyFlag;
+        var newFlags = prev | flags;
+        if (newFlags == prev)
+            return;
+
+        UpdateProperty(ref dirtyFlag, newFlags, nameof(DirtyFlags));
+
+#if DEBUG && DEBUG_PROP_UPDATES
+        var trace = string.Join(", ", new StackTrace().GetFrames().Take(5).Select(x => x.GetMethod().Name));
+        Debug.WriteLine($"[UIElement] Dirty: {new string(' ', Math.Max(treeDepth, 0))}{this} -> {dirtyFlag}   {trace}");
+#endif
 
         // Propagate dirty flags up
+        var toPropagate = flags & (DirtyFlags.ChildContent | DirtyFlags.ChildLayout);
         if ((flags & DirtyFlags.Layout) != 0)
-            Parent?.Dirty(DirtyFlags.ChildLayout);
-
+            toPropagate |= DirtyFlags.ChildLayout;
         if ((flags & DirtyFlags.Content) != 0)
-            Parent?.Dirty(DirtyFlags.ChildContent);
+            toPropagate |= DirtyFlags.ChildContent;
+
+        Parent?.Dirty(toPropagate);
     }
 
     /// <summary>
@@ -417,6 +437,20 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
         return target;
     }
 
+    /// <summary>
+    /// Measure the desired size of this UI Element.
+    /// </summary>
+    /// <remarks>
+    /// When drawing the UI, events happen in the following order: Measure() -> Layout() -> Draw()
+    /// <para/>
+    /// Layout() and Draw() occur from root node to leaves, whereas measure is invoked on the leaves first working it's way up to the root.
+    /// </remarks>
+    /// <returns>The desired width and height of this element.</returns>
+    internal protected virtual VectorInt2 Measure()
+    {
+        return new VectorInt2(width, height);
+    }
+
     // Internal
     /// <summary>
     /// Computes the bounds that this element occupies given the bounds of it's parent.
@@ -426,8 +460,7 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     protected virtual Bounds2D ComputeBounds(Bounds2D parent)
     {
         // Apply limits to the width and height
-        var parentWidth = parent.Width;
-        var parentHeight = parent.Height;
+        var parentSize = parent.Size;
         var desiredWidth = width > 0 ? width : DesiredWidth;
         var desiredHeight = height > 0 ? height : DesiredHeight;
 
@@ -446,23 +479,23 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
         switch (horizontalAlignment)
         {
             case Alignment.Left:
-                left = parent.topLeft.X + margin.W;
+                left = parent.topLeft.X + margin.left;
                 right = left + desiredWidth;
                 break;
             case Alignment.Right:
-                right = parent.bottomRight.X - margin.Y;
+                right = parent.bottomRight.X - margin.right;
                 left = right - desiredWidth;
                 break;
             case Alignment.Stretch:
-                left = parent.topLeft.X + margin.W;
-                var finalWidth = parentWidth - margin.Y - margin.W;
+                left = parent.topLeft.X + margin.left;
+                var finalWidth = parentSize.X - margin.right - margin.left;
                 if (minWidth >= 0)
                     finalWidth = Math.Max(finalWidth, minWidth);
                 right = left + finalWidth;
                 break;
             case Alignment.Centre:
-                left = parent.topLeft.X + (parentWidth - desiredWidth) * 0.5f;
-                right = parent.topLeft.X + (parentWidth + desiredWidth) * 0.5f;
+                left = parent.topLeft.X + (parentSize.X - desiredWidth) * 0.5f;
+                right = parent.topLeft.X + (parentSize.X + desiredWidth) * 0.5f;
                 break;
         }
 
@@ -470,23 +503,23 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
         switch (verticalAlignment)
         {
             case Alignment.Top:
-                top = parent.topLeft.Y + margin.X;
+                top = parent.topLeft.Y + margin.top;
                 bottom = top + desiredHeight;
                 break;
             case Alignment.Bottom:
-                bottom = parent.bottomRight.Y - margin.Z;
+                bottom = parent.bottomRight.Y - margin.bottom;
                 top = bottom - desiredHeight;
                 break;
             case Alignment.Stretch:
-                top = parent.topLeft.Y + margin.X;
-                var finalHeight = parentHeight - margin.X - margin.Z;
+                top = parent.topLeft.Y + margin.top;
+                var finalHeight = parentSize.Y - margin.top - margin.bottom;
                 if (minHeight >= 0)
                     finalHeight = Math.Max(finalHeight, minHeight);
                 bottom = top + finalHeight;
                 break;
             case Alignment.Centre:
-                top = parent.topLeft.Y + (parentHeight - desiredHeight) * 0.5f;
-                bottom = parent.topLeft.Y + (parentHeight + desiredHeight) * 0.5f;
+                top = parent.topLeft.Y + (parentSize.Y - desiredHeight) * 0.5f;
+                bottom = parent.topLeft.Y + (parentSize.Y + desiredHeight) * 0.5f;
                 break;
         }
 
@@ -496,25 +529,23 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <summary>
     /// Uses the draw context provided to draw this element to the screen using the provided bounds.
     /// </summary>
-    /// <param name="bounds">The bounds (in window-space) of this element.</param>
-    /// <param name="commands">The drawing command list to populate.</param>
-    internal protected abstract void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands);
+    /// <param name="context">The drawing context to execute draw commands on.</param>
+    internal protected abstract void Draw(IDrawContext context);//(Bounds2D bounds, List<Action<IDrawContext>> commands);
 
     /// <summary>
     /// Updates the layout of this element given it's parent.
     /// </summary>
     /// <returns>The computed window-space bounds of this element.</returns>
-    internal protected virtual Bounds2D Layout()
+    /// <param name="childIndex">The index of this element into the parent container's list of children.</param>
+    internal protected virtual Bounds2D Layout(int childIndex)
     {
-        if (Parent is not UIElement parent)
+        var parent = Parent;
+        if (parent == null)
             return Bounds2D.Zero;
 
-        var parentBounds = parent.renderedBounds;
+        var parentBounds = parent.RequestChildBounds(this, childIndex);
         var bounds = ComputeBounds(parentBounds);
-        RenderedBoundsAbsolute = bounds;
         RenderedBounds = new(bounds.topLeft - parentBounds.topLeft, bounds.bottomRight - parentBounds.topLeft);
-        RenderedWidth = bounds.Width;
-        RenderedHeight = bounds.Height;
 
         // Invalidating the layout implies invalidating the content
         Dirty(DirtyFlags.Content);
@@ -539,18 +570,28 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
         isHovered = true;
         OnStylableInputEvent?.Invoke(this, UIElementInputChange.MouseHover);
         OnMouseEnter?.Invoke(inputManager, pos);
+
+        Parent?.InvokeOnMouseEnter(inputManager, pos);
     }
     internal void InvokeOnMouseLeave(InputManager inputManager, VectorInt2 pos)
     {
         isHovered = false;
         OnStylableInputEvent?.Invoke(this, UIElementInputChange.MouseHover);
         OnMouseLeave?.Invoke(inputManager, pos);
+
+        Parent?.InvokeOnMouseLeave(inputManager, pos);
     }
     internal void InvokeOnMouseOver(InputManager inputManager, VectorInt2 pos)
     {
         isHovered = true;
         //OnStylableInputEvent?.Invoke(UIElementInputChange.MouseHover);
         OnMouseOver?.Invoke(inputManager, pos);
+
+        // TODO: Bubble events up to parents
+        // We might consider doing the bubbling in the input manager, and passing a shared
+        // reference to the event args object so that subscribers can stop the bubbling
+        // of the event.
+        Parent?.InvokeOnMouseOver(inputManager, pos);
     }
     internal void InvokeOnDoubleClick(InputManager inputManager, MouseButton button) => OnDoubleClick?.Invoke(inputManager, button);
     internal void InvokeOnMouseWheel(InputManager inputManager, Vector2 delta) => OnMouseWheel?.Invoke(inputManager, delta);
@@ -627,6 +668,8 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
         while ((parent = parent!.Parent) != null)
             parent.ChildElementChanged?.Invoke(target, treeChange);
     }
+
+    public override string? ToString() => $"{GetType().Name} ({name})";
 }
 
 /// <summary>

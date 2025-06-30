@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace ArgonUI.UIElements;
 
-[DebuggerDisplay("{GetType().Name,nq} ({Window.Title} - {name}, {Children.Count} children)")]
+[DebuggerDisplay("{GetType().Name,nq} ({Window?.Title} - {name}, {Children.Count} children)")]
 public partial class UIWindowElement : UIContainer
 {
     private readonly List<UIElement> children;
@@ -41,13 +41,13 @@ public partial class UIWindowElement : UIContainer
         {
             Width = this.window!.Size.x;
             Height = this.window!.Size.y;
-            Dirty(DirtyFlags.Content);
+            Dirty(DirtyFlags.Layout);
         };
         window.OnResize += () =>
         {
             Width = this.window!.Size.x;
             Height = this.window!.Size.y;
-            Dirty(DirtyFlags.Content);
+            Dirty(DirtyFlags.Layout);
         };
     }
 
@@ -105,22 +105,28 @@ public partial class UIWindowElement : UIContainer
         }
     }
 
-    protected internal override Bounds2D Layout()
+    protected internal override Bounds2D Layout(int childIndex)
     {
         var wndSize = window!.Size;
         var parentBounds = new Bounds2D(Vector2.Zero, new(wndSize.x, wndSize.y));
         var bounds = ComputeBounds(parentBounds);
-        RenderedBoundsAbsolute = bounds;
         RenderedBounds = new(bounds.topLeft - parentBounds.topLeft, bounds.bottomRight - parentBounds.topLeft);
-        RenderedWidth = bounds.Width;
-        RenderedHeight = bounds.Height;
+
+        // When a container's layout changes, it's children need to be re-evaluated
+        if (bounds != RenderedBoundsAbsolute)
+        {
+            foreach (var child in Children)
+                child.Dirty(DirtyFlags.Layout);
+        }
+
+        // Invalidating the layout implies invalidating the content
+        Dirty(DirtyFlags.Content);
         return bounds;
     }
 
-    protected internal override void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands)
+    protected internal override void Draw(IDrawContext ctx)
     {
-        commands.Clear();
-        commands.Add(ctx => ctx.Clear(bgColour));
+        ctx.Clear(bgColour);
     }
 
     /// <summary>
@@ -140,4 +146,6 @@ public partial class UIWindowElement : UIContainer
         }
         return target;
     }
+
+    public override string? ToString() => $"{GetType().Name} ({Window?.Title} - {Name}, {Children.Count} children)";
 }

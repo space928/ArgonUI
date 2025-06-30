@@ -7,8 +7,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ArgonUI.Styling;
@@ -154,12 +152,19 @@ public class Style : ICollection<IStylableProperty>, IReadOnlyDictionary<string,
             return;
         }
 
+        element.window?.renderer.StartUITreeOperation();
+
         var elements = selector?.Filter(element) ?? AllSelector.SelectAll(element);
         // Apply all the properties in this style to all selected elements.
         foreach (var selected in elements)
         {
             foreach (var prop in selectedProps)
+            {
+#if DEBUG && DEBUG_PROP_UPDATES
+                Debug.WriteLine($"[Style] Apply prop: {prop.Name}({prop.Value}) -> {selected} [From style: {this}]");
+#endif
                 prop.Apply(selected);
+            }
         }
 
         // This may have overwritten the properties set by child styles, re-apply them now.
@@ -178,6 +183,7 @@ public class Style : ICollection<IStylableProperty>, IReadOnlyDictionary<string,
         }
 
         selectedProps.Dispose();
+        element.window?.renderer.EndUITreeOperation();
 
         static IEnumerable<string> SelectNames(IEnumerable<IStylableProperty> props)
         {

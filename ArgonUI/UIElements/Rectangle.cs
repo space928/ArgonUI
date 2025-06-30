@@ -25,10 +25,10 @@ public partial class Rectangle : UIElement
     public bool logLatencyNow;
 #endif
 
-    protected internal override void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands)
+    protected internal override void Draw(IDrawContext ctx)
     {
-        commands.Clear();
-        commands.Add(ctx => ctx.DrawRect(bounds, Colour, Rounding));
+        if (Colour.W > 0)
+            ctx.DrawRect(RenderedBoundsAbsolute, Colour, Rounding);
 #if DEBUG_LATENCY
         if (logLatencyNow)
             commands.Add(ctx => ctx.MarkLatencyTimerEnd($"{Colour.Y}"));

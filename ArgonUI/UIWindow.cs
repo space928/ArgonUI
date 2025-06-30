@@ -15,10 +15,11 @@ public abstract class UIWindow : IDisposable
 {
     protected readonly ArgonManager argonManager;
     private readonly InputManager inputManager;
-    private readonly UIRenderer renderer;
+    internal readonly UIRenderer renderer;
     private readonly ManualResetEventSlim closingEvent;
     protected long lastRenderTime = 0;
     protected long updatePeriod;
+    private readonly object lockObj = new();
 
     private const long TicksPerSecond = 10 * 1000 * 1000;
 
@@ -57,6 +58,10 @@ public abstract class UIWindow : IDisposable
     /// Gets the instance of the <see cref="ArgonUI.Input.InputManager"/> associated with this window.
     /// </summary>
     public InputManager InputManager => inputManager;
+    /// <summary>
+    /// Operations which may modify the UI tree should synchronise with this lock object.
+    /// </summary>
+    public object UITreeUpdateLock => lockObj;
 
     /// <summary>
     /// An event invoked when the window is first loaded and ready to be drawn to.
@@ -129,21 +134,12 @@ public abstract class UIWindow : IDisposable
     /// Requests that this window redraws all dirty elements.
     /// </summary>
     public abstract void RequestRedraw();
-    /*{
-        var now = DateTime.UtcNow.Ticks;
-        if (now - lastRenderTime > updatePeriod)
-        {
-            lastRenderTime = now;
-            renderer?.DrawElements();
-            RenderFrame();
-        }
-    }*/
 
     /// <summary>
     /// This handles the render callback from the window backend. All graphics operation should happen in this thread.
     /// </summary>
-    /// <param name="obj"></param>
-    private void HandleOnRender(float obj)
+    /// <param name="delta">The time which has elapsed since the last frame.</param>
+    private void HandleOnRender(float delta)
     {
         lastRenderTime = DateTime.UtcNow.Ticks;
 

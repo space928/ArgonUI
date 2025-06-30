@@ -99,7 +99,7 @@ public class ArgonTexture
 
     /// <summary>
     /// Should be called by consumming <see cref="UIElements.UIElement"/> of this texture in their 
-    /// <see cref="UIElements.UIElement.Draw(Bounds2D, List{Action{IDrawContext}})"/> method.
+    /// <see cref="UIElements.UIElement.Draw(IDrawContext)"/> method.
     /// </summary>
     /// <param name="context"></param>
     public void ExecuteDrawCommands(IDrawContext context)

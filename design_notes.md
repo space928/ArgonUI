@@ -221,6 +221,29 @@ anything to a texture requires an instance of the drawing context. For instance 
 to perform texture operations at any time, the `ArgonTexture` stores a list of the texture 
 operations which need to be applied.
 
+### Drawing Lists V2
+
+Organising our drawing lists into a tree that matches that of the UI hierarchy often makes it hard 
+to batch things together. (Take for instance a grid of buttons containing labels). The new 
+suggestion, is that the UI engine maitains a list of lists of drawing commands, so when a couple of
+buttons are added to the drawing list it would look like so:
+```
+drawCmds = [
+	[wnd.bg],
+	[stackPanel.rect],
+	[button1.rect, button2.rect],
+	[button1.text, button2.text]
+]
+```
+Here, the draw order is preserved localy (so labels appear on top of buttons) but the rects can
+take advantage of auto batching. 
+
+For each element draw the sublist index it goes into is determined by:
+`listInd = treeDepth + zIndex`. Since `zIndex` can be really big or really small, it might make 
+sense to clamp to one above and one below the current min and max index and then re-order when 
+needed. Or I guess we could use a heap.
+
+
 # Input
 
 # Styling

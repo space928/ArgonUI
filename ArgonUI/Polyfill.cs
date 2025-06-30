@@ -187,6 +187,25 @@ namespace ArgonUI
             return value + 1;
         }
         #endregion
+        #region Stack
+        /// <summary>
+        /// Attempts to remove the object at the top of the stack.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="stack"></param>
+        /// <param name="value"></param>
+        /// <returns><see langword="true"/> if the object was successfully removed.</returns>
+        public static bool TryPop<T>(this Stack<T> stack, out T value)
+        {
+            if (stack.Count == 0)
+            {
+                value = default!;
+                return false;
+            }
+            value = stack.Pop();
+            return true;
+        }
+        #endregion
     }
 }
 

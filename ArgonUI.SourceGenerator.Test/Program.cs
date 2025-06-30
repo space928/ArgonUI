@@ -88,7 +88,8 @@ public abstract class UIElement : ReactiveObject
             Parent?.Dirty(DirtyFlags.ChildContent);
     }
 
-    public abstract UIElement Clone();
+    public virtual UIElement Clone() => throw new NotImplementedException();
+    public virtual UIElement Clone(UIElement target) => target;
 }
 
 public class ComplexValue

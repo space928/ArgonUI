@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using ArgonUI.Helpers;
 
 namespace ArgonUI;
 
@@ -18,7 +20,9 @@ public abstract class ReactiveObject : INotifyPropertyChanged, INotifyPropertyCh
     /// <param name="propName">The property name. (Automatic when called from a property setter)</param>
     protected void OnChanging([CallerMemberName] string? propName = null)
     {
-        PropertyChanging?.Invoke(this, new(propName));
+        var e = PropertyChangedArgsPool.RentChanging(propName);
+        PropertyChanging?.Invoke(this, e);
+        PropertyChangedArgsPool.Return(e);
     }
 
     /// <summary>
@@ -27,7 +31,9 @@ public abstract class ReactiveObject : INotifyPropertyChanged, INotifyPropertyCh
     /// <param name="propName">The property name. (Automatic when called from a property setter)</param>
     protected void OnChanged([CallerMemberName] string? propName = null)
     {
-        PropertyChanged?.Invoke(this, new(propName));
+        var e = PropertyChangedArgsPool.RentChanged(propName);
+        PropertyChanged?.Invoke(this, e);
+        PropertyChangedArgsPool.Return(e);
     }
 
     /// <summary>
@@ -50,8 +56,12 @@ public abstract class ReactiveObject : INotifyPropertyChanged, INotifyPropertyCh
     /// <param name="propName">The property name. (Automatic when called from a property setter)</param>
     protected void UpdateProperty<T>(ref T prop, in T val, [CallerMemberName] string? propName = null)
     {
-        PropertyChanging?.Invoke(this, new(propName));
+        var e1 = PropertyChangedArgsPool.RentChanging(propName);
+        var e2 = PropertyChangedArgsPool.RentChanged(propName);
+        PropertyChanging?.Invoke(this, e1);
         prop = val;
-        PropertyChanged?.Invoke(this, new(propName));
+        PropertyChanged?.Invoke(this, e2);
+        PropertyChangedArgsPool.Return(e1);
+        PropertyChangedArgsPool.Return(e2);
     }
 }

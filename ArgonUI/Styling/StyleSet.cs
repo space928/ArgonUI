@@ -1,15 +1,12 @@
-﻿using System;
+﻿using ArgonUI.Helpers;
+using ArgonUI.Styling.Selectors;
+using ArgonUI.UIElements;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ArgonUI.Helpers;
-using ArgonUI.Styling.Selectors;
-using ArgonUI.UIElements;
 
 namespace ArgonUI.Styling;
 
@@ -113,6 +110,7 @@ public partial class StyleSet : IList<Style>
 
     private void HandleElementChanged(UIElement target, string? propertyName, UIElementTreeChange treeChange, UIElementInputChange inputChange)
     {
+        target.window?.renderer.StartUITreeOperation();
         foreach (var style in styles)
         {
             var res = style.NeedsReevaluation(target, propertyName, treeChange, inputChange);
@@ -123,24 +121,32 @@ public partial class StyleSet : IList<Style>
                     break;
                 case StyleSelectorUpdate.ChangedElement:
                     // Since the selector might have de-selected elements we need to re-apply all parent styles (with matching props)
-                    ApplyParentStyles(target, style.Keys);
+                    // (We also need to re-apply other styles within this style set)
+                    ApplyParentStyles(target, style.Keys, true);
+                    //style.ApplyStyle(target);
                     break;
                 case StyleSelectorUpdate.AllElements:
-                    ApplyParentStyles(style.Keys);
+                    ApplyParentStyles(style.Keys, true);
+                    //ApplyStyleToElements(style);
                     break;
             }
         }
+        target.window?.renderer.EndUITreeOperation();
     }
 
     private void HandleStyleChange(Style style, IStylableProperty prop)
     {
         foreach (var element in registeredElements)
         {
+            element.window?.renderer.StartUITreeOperation();
+
             var selector = style.Selector ?? AllSelector.Shared;
             var selectedElements = selector.Filter(element);
 
             foreach (var selected in selectedElements)
                 prop.Apply(selected);
+
+            element.window?.renderer.EndUITreeOperation();
         }
     }
 
@@ -179,6 +185,7 @@ public partial class StyleSet : IList<Style>
     /// <param name="includeSelf">Whether <paramref name="uiSubTree"/>'s styles should be re-applied if no parent styles exist.</param>
     private static void ApplyParentStyles(UIElement uiSubTree, IEnumerable<string>? matchProp = null, bool includeSelf = true)
     {
+        uiSubTree.window?.renderer.StartUITreeOperation();
         // Search up the hierarchy to see if we can apply any parent styles
         // Go all the way up the hierarchy and then apply styles on the way back down
         TemporaryList<UIElement> parents = [];
@@ -199,6 +206,7 @@ public partial class StyleSet : IList<Style>
         if (parents.Count >= 1)
             parents[0].Style!.ApplyStyles(uiSubTree, true, matchProp);
         parents.Dispose();
+        uiSubTree.window?.renderer.EndUITreeOperation();
     }
 
     /// <summary>

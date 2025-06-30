@@ -192,38 +192,41 @@ public class OpenGLWindow : UIWindow
             while ((!nativeWnd?.IsClosing) ?? true)
             {
                 var evnt = inputEvents.Take(isClosingToken);
-                switch (evnt.type)
+                lock (UITreeUpdateLock)
                 {
-                    case InputEventType.KeyDown:
-                        OnKeyDown(this, evnt.key);
-                        break;
-                    case InputEventType.KeyUp:
-                        OnKeyUp(this, evnt.key);
-                        break;
-                    case InputEventType.MouseDown:
+                    switch (evnt.type)
+                    {
+                        case InputEventType.KeyDown:
+                            OnKeyDown(this, evnt.key);
+                            break;
+                        case InputEventType.KeyUp:
+                            OnKeyUp(this, evnt.key);
+                            break;
+                        case InputEventType.MouseDown:
 #if DEBUG_LATENCY
                         dbg_latencyStartTime = DateTime.UtcNow.Ticks;
 #endif
-                        OnMouseDown(this, evnt.button);
-                        break;
-                    case InputEventType.MouseUp:
-                        OnMouseUp(this, evnt.button);
-                        break;
-                    case InputEventType.MouseMove:
+                            OnMouseDown(this, evnt.button);
+                            break;
+                        case InputEventType.MouseUp:
+                            OnMouseUp(this, evnt.button);
+                            break;
+                        case InputEventType.MouseMove:
 #if DEBUG_LATENCY
                         var nt = DateTime.UtcNow.Ticks;
                         if (nt - dbg_latencyStartTime > 10000000)
                             dbg_latencyStartTime = nt;
 #endif
-                        OnMouseMove(this, new((int)evnt.pos.X, (int)evnt.pos.Y));
-                        break;
-                    case InputEventType.MouseScroll:
-                        var delta = evnt.pos - lastScrollPos;
-                        OnMouseWheel(this, delta);
-                        lastScrollPos = evnt.pos;
-                        break;
-                    default:
-                        throw new NotImplementedException();
+                            OnMouseMove(this, new((int)evnt.pos.X, (int)evnt.pos.Y));
+                            break;
+                        case InputEventType.MouseScroll:
+                            var delta = evnt.pos - lastScrollPos;
+                            OnMouseWheel(this, delta);
+                            lastScrollPos = evnt.pos;
+                            break;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 }
             }
         } catch (OperationCanceledException) { }

@@ -117,7 +117,15 @@ public class Texture2D : ITextureHandle, IDisposable
             return;
         }
 
-        gl.BindTextureUnit(unit, handle);
+        gl.ActiveTexture((TextureUnit)((int)TextureUnit.Texture0 + unit));
+        gl.BindTexture(TextureTarget.Texture2D, handle);
+        currentTexture = handle;
+    }
+
+    internal void BindInvalid()
+    {
+        gl.BindTexture(TextureTarget.Texture2D, handle);
+        currentTexture = handle;
     }
 
     public static void BindTextures(uint startUnit, ReadOnlySpan<Texture2D> textures)

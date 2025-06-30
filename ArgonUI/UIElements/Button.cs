@@ -28,6 +28,7 @@ public class Button : ContentButton
     public Button()
     {
         label = new Label();
+        label.HorizontalAlignment = label.VerticalAlignment = Alignment.Centre;
         base.Content = label;
     }
 

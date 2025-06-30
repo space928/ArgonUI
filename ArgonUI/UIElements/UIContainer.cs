@@ -17,10 +17,23 @@ public abstract partial class UIContainer : UIElement
     // Must propagate PropertyChanged/OnDirty events from children
     // OnDraw invocations are propagated back down to children
     public abstract IReadOnlyList<UIElement> Children { get; }
-    [Reactive, CustomAccessibility("public virtual"), Stylable, Dirty(DirtyFlags.ChildLayout)] 
-    private Vector4 innerPadding;
-    [Reactive, CustomAccessibility("public virtual"), Stylable, Dirty(DirtyFlags.ChildLayout)]
+
+    /// <summary>
+    /// How much space (in pixels) to leave around each edge of each child element.
+    /// </summary>
+    [Reactive, CustomAccessibility("public virtual"), Stylable, Dirty(DirtyFlags.Layout)] 
+    private Thickness innerPadding;
+
+    /// <summary>
+    /// Whether child elements which overflow the bounds of this container should be drawn.
+    /// </summary>
+    [Reactive, CustomAccessibility("public virtual"), Stylable, Dirty(DirtyFlags.Layout)]
     private bool clipContents;
+
+    public UIContainer() : base() 
+    {
+        DirtyFlags |= DirtyFlags.AllChild;
+    }
 
     /// <summary>
     /// Adds a <see cref="UIElement"/> as a child to this element.
@@ -79,6 +92,59 @@ public abstract partial class UIContainer : UIElement
     // Draw() must layout and draw all children
 
     /// <summary>
+    /// This method is invoked after this element's children have been measured. The intent is 
+    /// to give the UIContainer a chance decide if it needs to dirty it's layout and hence 
+    /// re-layout the rest of it's children.
+    /// <para/>
+    /// Example: If a button in a stack panel changes in height, then the stack panel needs to 
+    /// recompute it's layout to move all the subsequant buttons up/down.
+    /// </summary>
+    /// <remarks>
+    /// This method is only invoked if a measured child's size changed.
+    /// </remarks>
+    protected internal virtual void BeforeLayoutChildren()
+    {
+        //Dirty(DirtyFlags.Layout);
+    }
+
+    /// <summary>
+    /// This method is invoked whenever the layout of the children needs to be recomputed.
+    /// Note that if the container doesn't need to precompute the children's bounds before they 
+    /// request them (<see cref="RequestChildBounds(UIElement, int)"/>, then it's best to 
+    /// compute the child bounds on demand.
+    /// </summary>
+    protected internal virtual void LayoutChildren()
+    {
+
+    }
+
+    /// <summary>
+    /// Gets the bounds a child element is allowed to use. 
+    /// Note that this will always be called AFTER <see cref="LayoutChildren"/>.
+    /// </summary>
+    /// <param name="element">The instance of the child element requesting bounds.</param>
+    /// <param name="index">The index of the child element requesting bounds.</param>
+    /// <returns></returns>
+    protected internal virtual Bounds2D RequestChildBounds(UIElement element, int index)
+    {
+        return RenderedBoundsAbsolute.SubtractMargin(innerPadding);
+    }
+
+    protected internal override Bounds2D Layout(int childIndex)
+    {
+        var bounds = base.Layout(childIndex);
+
+        // When a container's layout changes, it's children need to be re-evaluated
+        if (bounds != RenderedBoundsAbsolute)
+        {
+            foreach (var child in Children)
+                child.Dirty(DirtyFlags.Layout);
+        }
+
+        return bounds;
+    }
+
+    /// <summary>
     /// Registration method which must be called by implementors after adding a new child element.
     /// </summary>
     /// <param name="element"></param>
@@ -103,19 +169,6 @@ public abstract partial class UIContainer : UIElement
     }
 
     /// <summary>
-    /// Recursively computes the tree depth of all child elements.
-    /// </summary>
-    private void UpdateTreeDepth()
-    {
-        foreach (var child in Children)
-        {
-            child.treeDepth = treeDepth + 1;
-            if (child is UIContainer container)
-                container.UpdateTreeDepth();
-        }
-    }
-
-    /// <summary>
     /// Registration method which must be called by implementors after removing a child element.
     /// </summary>
     /// <param name="element"></param>
@@ -131,6 +184,19 @@ public abstract partial class UIContainer : UIElement
         OnChildElementChanged(element, UIElementTreeChange.ElementRemoved);
     }
 
+    /// <summary>
+    /// Recursively computes the tree depth of all child elements.
+    /// </summary>
+    private void UpdateTreeDepth()
+    {
+        foreach (var child in Children)
+        {
+            child.treeDepth = treeDepth + 1;
+            if (child is UIContainer container)
+                container.UpdateTreeDepth();
+        }
+    }
+
     public override UIElement Clone(UIElement target)
     {
         base.Clone(target);
@@ -144,4 +210,6 @@ public abstract partial class UIContainer : UIElement
         }
         return target;
     }
+
+    public override string? ToString() => $"{GetType().Name} ({Name}, {Children.Count} children)";
 }

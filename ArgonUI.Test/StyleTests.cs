@@ -173,8 +173,8 @@ public class StyleTests
         Assert.AreEqual(colourGreen, ccbtn.Colour);         // \-> CBtn
         Assert.AreEqual(colourGreen, innerRect.Colour);     //     \-> Rect
 
-        Assert.AreEqual(colourGreen, cbtn.InnerPadding);
-        Assert.AreEqual(colourRed, ccbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, cbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourRed, ccbtn.InnerPadding);
         //Assert.AreEqual(colourRed, innerRect.InnerPadding);
 
         // Remove just the style, not the style set
@@ -185,8 +185,8 @@ public class StyleTests
         Assert.AreEqual(colourRed, ccbtn.Colour);         // \-> CBtn
         Assert.AreEqual(colourRed, innerRect.Colour);     //     \-> Rect
         // Check inner padding was not changed
-        Assert.AreEqual(colourGreen, cbtn.InnerPadding);
-        Assert.AreEqual(colourRed, ccbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, cbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourRed, ccbtn.InnerPadding);
         //Assert.AreEqual(colourRed, innerRect.InnerPadding);
     }
 
@@ -198,18 +198,18 @@ public class StyleTests
         // Add a style to the cbtn
         cbtn.Style = new(new Style([ArgonUIStyles.Colour(colourBlue)]));
 
-        Assert.AreEqual(colourGreen, wnd.RootElement.InnerPadding);
-        Assert.AreEqual(colourGreen, btn.InnerPadding);
-        Assert.AreEqual(colourGreen, cbtn.InnerPadding);
-        Assert.AreEqual(colourGreen, ccbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, wnd.RootElement.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, btn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, cbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, ccbtn.InnerPadding);
 
         // Now add the inner padding property to the cbtn
         cbtn.Style[0].Add(ArgonUIStyles.InnerPadding(colourRed));
 
-        Assert.AreEqual(colourGreen, wnd.RootElement.InnerPadding);
-        Assert.AreEqual(colourGreen, btn.InnerPadding);
-        Assert.AreEqual(colourRed, cbtn.InnerPadding);
-        Assert.AreEqual(colourRed, ccbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, wnd.RootElement.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, btn.InnerPadding);
+        Assert.AreEqual((Thickness)colourRed, cbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourRed, ccbtn.InnerPadding);
     }
 
     [TestMethod]
@@ -220,18 +220,18 @@ public class StyleTests
         // Add a style to the cbtn
         cbtn.Style = new(new Style([ArgonUIStyles.InnerPadding(colourBlue)]));
 
-        Assert.AreEqual(colourGreen, wnd.RootElement.InnerPadding);
-        Assert.AreEqual(colourGreen, btn.InnerPadding);
-        Assert.AreEqual(colourBlue, cbtn.InnerPadding);
-        Assert.AreEqual(colourBlue, ccbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, wnd.RootElement.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, btn.InnerPadding);
+        Assert.AreEqual((Thickness)colourBlue, cbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourBlue, ccbtn.InnerPadding);
 
         // Now change the inner padding property to the cbtn
         cbtn.Style[0][nameof(ArgonUIStyles.InnerPadding)].Value = colourRed;
 
-        Assert.AreEqual(colourGreen, wnd.RootElement.InnerPadding);
-        Assert.AreEqual(colourGreen, btn.InnerPadding);
-        Assert.AreEqual(colourRed, cbtn.InnerPadding);
-        Assert.AreEqual(colourRed, ccbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, wnd.RootElement.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, btn.InnerPadding);
+        Assert.AreEqual((Thickness)colourRed, cbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourRed, ccbtn.InnerPadding);
     }
 
     [TestMethod]
@@ -242,18 +242,18 @@ public class StyleTests
         // Add a style to the cbtn
         cbtn.Style = new(new Style([ArgonUIStyles.InnerPadding(colourBlue)]));
 
-        Assert.AreEqual(colourGreen, wnd.RootElement.InnerPadding);
-        Assert.AreEqual(colourGreen, btn.InnerPadding);
-        Assert.AreEqual(colourBlue, cbtn.InnerPadding);
-        Assert.AreEqual(colourBlue, ccbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, wnd.RootElement.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, btn.InnerPadding);
+        Assert.AreEqual((Thickness)colourBlue, cbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourBlue, ccbtn.InnerPadding);
 
         // Now change the inner padding property to the cbtn
         Assert.IsTrue(cbtn.Style[0].Remove(nameof(ArgonUIStyles.InnerPadding)));
 
-        Assert.AreEqual(colourGreen, wnd.RootElement.InnerPadding);
-        Assert.AreEqual(colourGreen, btn.InnerPadding);
-        Assert.AreEqual(colourGreen, cbtn.InnerPadding);
-        Assert.AreEqual(colourGreen, ccbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, wnd.RootElement.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, btn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, cbtn.InnerPadding);
+        Assert.AreEqual((Thickness)colourGreen, ccbtn.InnerPadding);
     }
 
     [TestMethod]

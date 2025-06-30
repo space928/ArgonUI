@@ -129,20 +129,48 @@ public class BMFont : Font
     /// </summary>
     /// <param name="str">The string to measure.</param>
     /// <param name="size">The font size.</param>
+    /// <param name="width">The amount of horizontal stretch applied to this font.</param>
     /// <returns>A vector of the measured width and height.</returns>
-    public Vector2 Measure(string? str, float size)
+    public Bounds2D Measure(string? str, float size, float width = 1)
     {
         if (string.IsNullOrEmpty(str))
-            return Vector2.Zero;
+            return Bounds2D.Zero;
 
-        Vector2 measure = Vector2.Zero;
+        /*
+        From the text rendering code: 
+            float size_x = size * width;
+            float x0 = pos.X + c.xOffset * size_x;
+            float x1 = pos.X + (c.xOffset + c.width) * size_x;
+            float y0 = pos.Y + c.yOffset * size;
+            float y1 = pos.Y + (c.yOffset + c.height) * size;
+            advance = c.xAdvance * size_x;
+         */
+
+        Bounds2D measure = Bounds2D.Zero;
         float fontSize = size / Size;
+        float sizeX = fontSize * width;
+        Vector2 fontSizeVec = new(sizeX, fontSize);
+        float xPos = 0;
+        bool first = true;
         foreach (char c in str!)
         {
             var cDef = charsDictFrozen[c];
-            // TODO: Doesn't account for yOffset
-            measure.Y = Math.Max(measure.Y, cDef.height * fontSize);
-            measure.X += cDef.xAdvance * fontSize;
+
+            Vector2 tl = cDef.offset * fontSizeVec;
+            Vector2 br = (cDef.offset + cDef.size) * fontSizeVec;
+            tl.X += xPos;
+            br.X += xPos;
+            xPos += cDef.xAdvance * sizeX;
+
+            if (first)
+            {
+                measure = new(tl, br);
+                first = false;
+            }
+            else
+            {
+                measure = measure.Union(new(tl, br));
+            }
         }
         return measure;
     }
@@ -152,16 +180,17 @@ public class BMFont : Font
     /// </summary>
     /// <param name="c">The character to measure.</param>
     /// <param name="size">The font size.</param>
+    /// <param name="width">The amount of horizontal stretch applied to this font.</param>
     /// <returns>A vector of the measured width and height.</returns>
-    public Vector2 Measure(char c, float size)
+    public Bounds2D Measure(char c, float size, float width = 1)
     {
         Vector2 measure = Vector2.Zero;
         float fontSize = size / Size;
+        Vector2 fontSizeVec = new(fontSize * width, fontSize);
         var cDef = charsDictFrozen[c];
-        // TODO: Doesn't account for yOffset
-        measure.Y = Math.Max(measure.Y, cDef.height * fontSize);
-        measure.X += cDef.xAdvance * fontSize;
-        return measure;
+        Vector2 tl = cDef.offset * fontSizeVec;
+        Vector2 br = (cDef.offset + cDef.size) * fontSizeVec;
+        return new(tl, br);
     }
 
     #region Loading
@@ -460,37 +489,25 @@ public struct BMFontChar
     /// </summary>
     public char character;
     /// <summary>
-    /// The width of the character in pixels.
+    /// The width and height of the character in pixels.
     /// </summary>
-    public int width;
-    /// <summary>
-    /// The height of the character in pixels.
-    /// </summary>
-    public int height;
+    public Vector2 size;
     /// <summary>
     /// How much the current position should be offset when copying the image from the texture to the screen.
     /// </summary>
-    public int xOffset;
-    /// <summary>
-    /// How much the current position should be offset when copying the image from the texture to the screen.
-    /// </summary>
-    public int yOffset;
+    public Vector2 offset;
     /// <summary>
     /// How much the current position should advacne after drawing the character.
     /// </summary>
-    public int xAdvance;
+    public float xAdvance;
     /// <summary>
     /// The texture channel where the character image is found (1 = blue, 2 = green, 4 = red, 8 = alpha, 15 = all channels).
     /// </summary>
     public BMFontCharChannel channel;
     /// <summary>
-    /// The left position of the character image in the texture.
+    /// The top-left position of the character image in the texture.
     /// </summary>
-    public int x;
-    /// <summary>
-    /// The top position of the character image in the texture.
-    /// </summary>
-    public int y;
+    public Vector2 pos;
     /// <summary>
     /// The texture page where the character image is found.
     /// </summary>
@@ -516,22 +533,22 @@ public struct BMFontChar
                     id = int.Parse(reader.Value);
                     break;
                 case "x":
-                    x = int.Parse(reader.Value);
+                    pos.X = int.Parse(reader.Value);
                     break;
                 case "y":
-                    y = int.Parse(reader.Value);
+                    pos.Y = int.Parse(reader.Value);
                     break;
                 case "width":
-                    width = int.Parse(reader.Value);
+                    size.X = int.Parse(reader.Value);
                     break;
                 case "height":
-                    height = int.Parse(reader.Value);
+                    size.Y = int.Parse(reader.Value);
                     break;
                 case "xoffset":
-                    xOffset = int.Parse(reader.Value);
+                    offset.X = int.Parse(reader.Value);
                     break;
                 case "yoffset":
-                    yOffset = int.Parse(reader.Value);
+                    offset.Y = int.Parse(reader.Value);
                     break;
                 case "xadvance":
                     xAdvance = int.Parse(reader.Value);

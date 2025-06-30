@@ -69,7 +69,7 @@ public static class Texture2DLoader
     private static void LoadTextureResult(GL gl, TextureResult t)
     {
         var img = t;
-        t.targetTex.Bind();
+        t.targetTex.BindInvalid();
         if (img.compression != GLTextureCompressionType.None)
         {
             gl.PixelStore(PixelStoreParameter.UnpackAlignment, 1);
@@ -97,7 +97,7 @@ public static class Texture2DLoader
         {
             t.targetTex.UpdateMetadata(img.data[0].width, img.data[0].height, t.pixelFormat, t.pixelType, t.internalFormat, t.compression);
         }
-        //t.targetTex.IsValid = true;
+        t.targetTex.IsValid = true;
 
         //isValid = false;
     }

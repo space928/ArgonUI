@@ -63,7 +63,7 @@ public partial class Slider : UIElement
     [Reactive, Dirty(DirtyFlags.Content)] 
     private float power;
 
-    protected internal override void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands)
+    protected internal override void Draw(IDrawContext ctx)
     {
         throw new NotImplementedException();
     }

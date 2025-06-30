@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
 
@@ -40,9 +41,9 @@ public class VertexArrayObject<TVert, TInd> : IDisposable
             throw new Exception($"Attempted to configure vertex attributes on a VAO which isn't bound! (handle={handle}; current={currentVAO})");
 
         gl.EnableVertexAttribArray(index);
-        gl.VertexAttribFormat(index, count, type, false, (uint)(offset * Marshal.SizeOf<TVert>()));
+        gl.VertexAttribFormat(index, count, type, false, (uint)(offset * Unsafe.SizeOf<TVert>()));
         gl.VertexAttribBinding(index, 0);
-        gl.BindVertexBuffer(0, vboHandle, 0, (uint)(vertexSize * Marshal.SizeOf<TVert>()));
+        gl.BindVertexBuffer(0, vboHandle, 0, (uint)(vertexSize * Unsafe.SizeOf<TVert>()));
         //bindingIndex++;
         /*gl.VertexAttribPointer(index, count, type, false, vertexSize * (uint)sizeof(TVert), (void*)(offSet * sizeof(TVert)));*/
     }

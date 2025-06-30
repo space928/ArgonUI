@@ -22,9 +22,8 @@ public partial class ContentButton : ElementPresenterBase
     /// </summary>
     [Reactive, Dirty(DirtyFlags.Content), Stylable] private float rounding;
 
-    protected internal override void Draw(Bounds2D bounds, List<Action<IDrawContext>> commands)
+    protected internal override void Draw(IDrawContext ctx)
     {
-        commands.Clear();
-        commands.Add(ctx => ctx.DrawRect(bounds, Colour, Rounding));
+        ctx.DrawRect(RenderedBoundsAbsolute, Colour, Rounding);
     }
 }

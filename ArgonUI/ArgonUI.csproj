@@ -7,7 +7,7 @@
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Title>ArgonUI</Title>
-		<Version>0.3.2-pre</Version>
+		<Version>0.4.1-pre</Version>
 		<Authors>Thomas Mathieson</Authors>
 		<Copyright>Copyright © Thomas Mathieson 2025</Copyright>
 		<PackageProjectUrl>https://github.com/space928/ArgonUI</PackageProjectUrl>
@@ -40,6 +40,7 @@
 
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.0|AnyCPU'">
 		<!--<DefineConstants>$(DefineConstants);DEBUG_LATENCY</DefineConstants>-->
+		<!--<DefineConstants>$(DefineConstants);DEBUG_PROP_UPDATES</DefineConstants>-->
 	</PropertyGroup>
 
 	<ItemGroup>

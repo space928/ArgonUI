@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\ArgonUI\Helpers\PropertyChangedArgsPool.cs" Link="PropertyChangedArgsPool.cs" />
     <Compile Include="..\ArgonUI\ReactiveObject.cs" Link="ReactiveObject.cs" />
     <Compile Include="..\ArgonUI\SourceGenerator\DirtyAttribute.cs" Link="DirtyAttribute.cs" />
     <Compile Include="..\ArgonUI\SourceGenerator\GeneratedStylesAttribute.cs" Link="GeneratedStylesAttribute.cs" />
