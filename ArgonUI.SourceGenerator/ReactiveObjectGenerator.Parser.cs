@@ -1,4 +1,5 @@
 ﻿using ArgonUI.UIElements;
+using ArgonUI.UIElements.Abstract;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -73,9 +74,9 @@ public partial class ReactiveObjectGenerator
                     var fieldName = reactiveNode.TargetSymbol.Name;
                     var varSyntax = (VariableDeclarationSyntax)reactiveNode.TargetNode.Parent!;
                     var type = ((IFieldSymbol)reactiveNode.TargetSymbol).Type;
-                    var typeName = type.ToString();
                     bool nullable = varSyntax.Type.Kind() == SyntaxKind.NullableType;
                     enableNullable |= nullable;
+                    var typeName = type.ToDisplayString(nullable ? NullableFlowState.MaybeNull : NullableFlowState.None, SymbolDisplayFormat.FullyQualifiedFormat);//type.ToString();
                     var propName = FormatPropName(fieldName);
                     string? docComment = reactiveNode.TargetSymbol.GetDocumentationCommentXml();
                     string? getFunc = null;
@@ -84,7 +85,7 @@ public partial class ReactiveObjectGenerator
                     bool getInline = false;
                     bool setInline = false;
                     StylableField? stylable = null;
-                    var dirtyFlags = DirtyFlags.None;
+                    var dirtyFlags = DirtyFlag.None;
 
                     // Parse attributes
                     var attributes = reactiveNode.TargetSymbol.GetAttributes();
@@ -116,7 +117,7 @@ public partial class ReactiveObjectGenerator
                                     yield return new(null, diag);
                                 }
                                 if (args.Length >= 1)
-                                    dirtyFlags = (DirtyFlags)args[0].Value!;
+                                    dirtyFlags = (DirtyFlag)args[0].Value!;
                                 break;
                             case nameof(StylableAttribute):
                                 stylable = new();
@@ -158,7 +159,7 @@ public partial class ReactiveObjectGenerator
     public record ReactiveObjectClass(Accessibility Accessibility, string Namespace, string Assembly, string ClassName, 
         bool EnableNullable, EquatableArray<ReactiveObjectField> ReactiveFields);
     public record ReactiveObjectField(string FieldType, string FieldName, string PropName, string? DocComment, 
-        DirtyFlags DirtyFlags, string? OnGetFunc, bool GetInline, string? OnSetAction, bool SetInline, 
+        DirtyFlag DirtyFlags, string? OnGetFunc, bool GetInline, string? OnSetAction, bool SetInline, 
         string? CustomAccessibility, StylableField? Stylable);
     public record StylableField();
 }

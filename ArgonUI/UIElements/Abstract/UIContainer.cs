@@ -1,5 +1,6 @@
 ﻿using ArgonUI.SourceGenerator;
 using ArgonUI.Styling;
+using ArgonUI.UIElements.Abstract;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -21,18 +22,18 @@ public abstract partial class UIContainer : UIElement
     /// <summary>
     /// How much space (in pixels) to leave around each edge of each child element.
     /// </summary>
-    [Reactive, CustomAccessibility("public virtual"), Stylable, Dirty(DirtyFlags.Layout)] 
+    [Reactive, CustomAccessibility("public virtual"), Stylable, Dirty(DirtyFlag.Layout)] 
     private Thickness innerPadding;
 
     /// <summary>
     /// Whether child elements which overflow the bounds of this container should be drawn.
     /// </summary>
-    [Reactive, CustomAccessibility("public virtual"), Stylable, Dirty(DirtyFlags.Layout)]
+    [Reactive, CustomAccessibility("public virtual"), Stylable, Dirty(DirtyFlag.Layout)]
     private bool clipContents;
 
     public UIContainer() : base() 
     {
-        DirtyFlags |= DirtyFlags.AllChild;
+        DirtyFlags |= DirtyFlag.ChildContentAndLayout;
     }
 
     /// <summary>
@@ -104,7 +105,7 @@ public abstract partial class UIContainer : UIElement
     /// </remarks>
     protected internal virtual void BeforeLayoutChildren()
     {
-        //Dirty(DirtyFlags.Layout);
+        //Dirty(DirtyFlag.Layout);
     }
 
     /// <summary>
@@ -138,7 +139,7 @@ public abstract partial class UIContainer : UIElement
         if (bounds != RenderedBoundsAbsolute)
         {
             foreach (var child in Children)
-                child.Dirty(DirtyFlags.Layout);
+                child.Dirty(DirtyFlag.Layout);
         }
 
         return bounds;

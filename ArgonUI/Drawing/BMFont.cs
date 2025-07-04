@@ -29,6 +29,7 @@ public class BMFont : Font
     private readonly ReadOnlyCollection<BMFontKerning> kerningsRO;
     private FrozenDictionary<char, FrozenDictionary<char, float>> kerningsDictFrozen;
     private FrozenDictionary<char, BMFontChar> charsDictFrozen;
+    private readonly Dictionary<float, BMFont> prescaledAlternatives = [];
 
     /// <summary>
     /// This is the distance in pixels between each line of text.
@@ -106,7 +107,13 @@ public class BMFont : Font
     /// </summary>
     public float Outline { get; private set; }
 
+    /// <summary>
+    /// The type of signed-distance field (if any) contained in the font's bitmap.
+    /// </summary>
     public BMFontSDFType SDFType { get; private set; }
+    /// <summary>
+    /// The distance range of the signed-distance field (if used) in pixels.
+    /// </summary>
     public float SDFDistanceRange { get; private set; }
 
     public ReadOnlyCollection<BMFontPage> Pages => pagesRO;
@@ -122,6 +129,17 @@ public class BMFont : Font
         kerningsRO = new(kernings);
         kerningsDictFrozen = FrozenDictionary<char, FrozenDictionary<char, float>>.Empty;
         charsDictFrozen = FrozenDictionary<char, BMFontChar>.Empty;
+    }
+
+    /// <summary>
+    /// Trys to get a <see cref="BMFont"/> instance of this font optimised for rendering at the 
+    /// given font size.
+    /// </summary>
+    /// <param name="fontSize">The font size to target (integer values are recommended)</param>
+    /// <returns>A <see cref="BMFont"/> instance for that font size or <see langword="null"/> if one doesn't exist.</returns>
+    public BMFont? GetScaledFont(float fontSize)
+    {
+        return null;
     }
 
     /// <summary>

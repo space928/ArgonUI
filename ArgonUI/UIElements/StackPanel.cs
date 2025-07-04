@@ -1,4 +1,5 @@
 ﻿using ArgonUI.SourceGenerator;
+using ArgonUI.UIElements.Abstract;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace ArgonUI.UIElements;
 [UIClonable]
 public partial class StackPanel : Panel
 {
-    [Reactive, Dirty(DirtyFlags.Layout)]
+    [Reactive, Dirty(DirtyFlag.Layout)]
     private Direction direction;
 
     public StackPanel()
@@ -37,34 +38,34 @@ public partial class StackPanel : Panel
 
     protected internal override void BeforeLayoutChildren()
     {
-        Dirty(DirtyFlags.Layout);
+        Dirty(DirtyFlag.Layout);
     }
 
-    protected internal override VectorInt2 Measure()
+    protected internal override Vector2 Measure()
     {
         var children = Children;
         if (children.Count == 0)
             return base.Measure();
 
-        VectorInt2 res = VectorInt2.Zero;
-        VectorInt2 pad = new((int)(InnerPadding.left + InnerPadding.right), (int)(InnerPadding.top + InnerPadding.bottom));
+        var res = Vector2.Zero;
+        Vector2 pad = InnerPadding.Size;
         if (direction == Direction.Vertical)
         {
             foreach (var child in children)
             {
-                res.x = Math.Max(res.x, child.desiredSize.x);
-                res.y += child.desiredSize.y + pad.y;
+                res.X = Math.Max(res.X, child.desiredSize.X);
+                res.Y += child.desiredSize.Y + pad.Y;
             }
-            res.x += pad.x;
+            res.X += pad.X;
         } 
         else
         {
             foreach (var child in children)
             {
-                res.x += child.desiredSize.x + pad.x;
-                res.y = Math.Max(res.y, child.desiredSize.y);
+                res.X += child.desiredSize.X + pad.X;
+                res.Y = Math.Max(res.Y, child.desiredSize.Y);
             }
-            res.y += pad.y;
+            res.Y += pad.Y;
         }
 
         return res;
@@ -78,19 +79,19 @@ public partial class StackPanel : Panel
     protected internal override Bounds2D RequestChildBounds(UIElement element, int index)
     {
         if (index == 0)
-            return RenderedBoundsAbsolute.SubtractMargin(InnerPadding);
+            return RenderedBoundsAbsolute.SubtractMargin(InnerPadding).WithSizeNonZero(element.desiredSize);
 
         if (direction == Direction.Vertical)
         {
             var bounds = RenderedBoundsAbsolute;
             bounds.topLeft.Y = Children[index - 1].RenderedBoundsAbsolute.bottomRight.Y;
-            return bounds.SubtractMargin(InnerPadding);
+            return bounds.SubtractMargin(InnerPadding).WithSizeNonZero(element.desiredSize);
         }
         else
         {
             var bounds = RenderedBoundsAbsolute;
             bounds.topLeft.X = Children[index - 1].RenderedBoundsAbsolute.bottomRight.X;
-            return bounds.SubtractMargin(InnerPadding);
+            return bounds.SubtractMargin(InnerPadding).WithSizeNonZero(element.desiredSize);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using ArgonUI.Drawing;
 using ArgonUI.SourceGenerator;
+using ArgonUI.UIElements.Abstract;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,18 +10,16 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArgonUI.UIElements;
+namespace ArgonUI.UIElements.Abstract;
 
+/// <summary>
+/// A very basic type of <see cref="UIContainer"/> which draws each of it's children in order, on top of each other.
+/// </summary>
 [UIClonable]
-public partial class Panel : UIContainer
+public partial class Panel : UIContainerRectangle
 {
     private readonly List<UIElement> children;
     private readonly ReadOnlyCollection<UIElement> childrenRO;
-    /// <summary>
-    /// The background colour of this panel.
-    /// </summary>
-    [Reactive, Dirty(DirtyFlags.Content), Stylable]
-    private Vector4 colour;
 
     public override IReadOnlyList<UIElement> Children => childrenRO;
 
@@ -76,22 +75,16 @@ public partial class Panel : UIContainer
         }
     }
 
-    protected internal override VectorInt2 Measure()
+    protected internal override Vector2 Measure()
     {
         if (children.Count == 0)
             return base.Measure();
 
-        VectorInt2 res = VectorInt2.Zero;
+        var res = Vector2.Zero;
         foreach (var child in children)
-            res = VectorInt2.Max(res, child.desiredSize);
-        res += new VectorInt2((int)(InnerPadding.left + InnerPadding.right), (int)(InnerPadding.top + InnerPadding.bottom));
+            res = Vector2.Max(res, child.desiredSize);
+        res += InnerPadding.Size;
 
         return res;
-    }
-
-    protected internal override void Draw(IDrawContext ctx)
-    {
-        if (colour.W != 0)
-            ctx.DrawRect(RenderedBoundsAbsolute, colour, 0);
     }
 }

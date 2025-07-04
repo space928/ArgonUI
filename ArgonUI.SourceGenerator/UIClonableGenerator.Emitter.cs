@@ -40,8 +40,11 @@ public partial class UIClonableGenerator
         sb.AppendLine($"{model.Accessibility.GetText()} partial class {model.ClassName}");
         using (sb.EnterCurlyBracket())
         {
-            sb.AppendLine($"public override UIElement Clone() => Clone(new {model.ClassName}());");
-            sb.AppendLine();
+            if (!model.IsAbstract)
+            {
+                sb.AppendLine($"public override UIElement Clone() => Clone(new {model.ClassName}());");
+                sb.AppendLine();
+            }
             sb.AppendLine("public override UIElement Clone(UIElement target)");
             using (sb.EnterCurlyBracket())
             {

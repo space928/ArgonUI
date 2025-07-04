@@ -75,7 +75,7 @@ public partial class MergeStylesGenerator
                     using (sb.EnterCurlyBracket())
                     {
                         foreach (var styled in prop.StyledTypes)
-                            sb.AppendLine($"case {styled} _{styled}: _{styled}.{prop.Name} = typedProp.Value; break;");
+                            sb.AppendLine($"case {styled.Namespace}.{styled.Type} _{styled.Type}: _{styled.Type}.{prop.Name} = typedProp.Value; break;");
                         sb.AppendLine($"default: break;");
                         //sb.AppendLine($"default: throw new InvalidOperationException(\"Can't set property '{prop.Name}' on element of type '\" + elem.GetType().Name + \"'\");");
                     }

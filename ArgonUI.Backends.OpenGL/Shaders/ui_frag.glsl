@@ -1,23 +1,36 @@
 ﻿#version 420 core
 
+#ifdef SUPPORT_OUTLINE
+#if !defined(SUPPORT_ROUNDING)
+#define SUPPORT_ROUNDING
+#endif
+#endif
+
 #ifdef SUPPORT_TEXT
 uniform sampler2D uFontTex;
 #endif // SUPPORT_TEXT
+
 #ifdef SUPPORT_TEXTURE
 uniform sampler2D uMainTex;
 #endif // SUPPORT_TEXTURE
 
 out vec4 fragColor;
+
 layout(location = 0) in vec4 v_color;
+
 #ifdef SUPPORT_TEXT
 layout(location = 1) in vec3 v_char;
 #endif // SUPPORT_TEXT
-#if defined(SUPPORT_TEXTURE) || defined(SUPPORT_ROUNDING)
+
+#if defined(SUPPORT_TEXTURE) || defined(SUPPORT_ROUNDING) || defined(SUPPORT_BLUR)
 layout(location = 2) in vec2 v_texcoord;
 #endif // defined(SUPPORT_TEXTURE) || defined(SUPPORT_ROUNDING)
-#ifdef SUPPORT_ROUNDING
-layout(location = 3) in flat vec3 v_size;
+
+#if defined(SUPPORT_ROUNDING) || defined(SUPPORT_BLUR)
+layout(location = 3) in flat vec4 v_size;
 #endif // SUPPORT_ROUNDING
+
+
 
 #ifdef SUPPORT_TEXT
 float median(vec3 x) {
@@ -46,6 +59,14 @@ float hint(float mask, float sdf) {
 }
 #endif // SUPPORT_TEXT
 
+#ifdef SUPPORT_BLUR
+float smootherstep(float edge0, float edge1, float x) {
+  x = clamp((x - edge0) / (edge1 - edge0), 0., 1.);
+
+  return x * x * x * (x * (6. * x - 15.) + 10.);
+}
+#endif // SUPPORT_BLUR
+
 void main() {
     fragColor = v_color;
 
@@ -59,14 +80,14 @@ void main() {
         // Heuristic based hinting works, but has artifacts...
         //mask = hint(mask, sdf);
         fragColor.a *= mask;
-        #ifdef SUPPORT_SHADOW
+        #ifdef SUPPORT_TEXT_SHADOW
             float shadow_sdf = median(texture(uFontTex, v_char.xy-0.01).rgb);
             float shadow = smoothstep(max(v_char.z - smoothing*2., 0.05), min(v_char.z + smoothing*2., 0.95), shadow_sdf);
             float shadow_exp = smoothstep(max(v_char.z-.2 - smoothing, 0.05), min(v_char.z-.2 + smoothing, 0.95), shadow_sdf);
             float shadow_alpha = max(shadow_exp-fragColor.a, 0.);
             fragColor.rgb = (fragColor.rgb*0.2)*shadow_alpha + fragColor.rgb*(1.-shadow_alpha);
             fragColor.a = min(fragColor.a+shadow*0.75, 1.);
-        #endif // SUPPORT_SHADOW
+        #endif // SUPPORT_TEXT_SHADOW
     #endif // SUPPORT_TEXT
 
     #ifdef SUPPORT_TEXTURE
@@ -74,14 +95,28 @@ void main() {
     #endif // SUPPORT_TEXTURE
 
     #ifdef SUPPORT_ROUNDING
+        #ifdef SUPPORT_BLUR
+        float blur = v_size.w;
+        #else
+        float blur = 0.;
+        #endif
         float radius = v_size.z;
         radius = min(radius, min(v_size.x, v_size.y)/4.);
         vec2 uv = v_texcoord * 2. - 1.;
-        vec2 r = abs(uv*v_size.xy/4.) - v_size.xy/4. + radius;
+        vec2 r = abs(uv*v_size.xy/4.) - v_size.xy/4. + radius + blur;
         float mask = length(max(r, 0.)) + min(max(r.x, r.y), 0.0) - radius;
+        
+        // Apply either the blur or the rounding
+        #ifdef SUPPORT_BLUR
+        mask = max(mask/blur, 0.);
+        fragColor.a *= exp(-(mask*mask*2.)) * (1.-mask*mask*mask);
+        #else
         fragColor.a *= smoothstep(0.5, -.25, mask);
+        #endif // SUPPORT_BLUR
+
         #ifdef SUPPORT_OUTLINE
-        fragColor.rgb *= smoothstep(0.4, 1., abs(mask))*.5+.5;
+        float outlineThick = v_size.w;
+        fragColor.a = smoothstep(outlineThick, outlineThick-1., abs(mask+outlineThick));
         #endif // SUPPORT_OUTLINE
     #endif // SUPPORT_ROUNDING
 

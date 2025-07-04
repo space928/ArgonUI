@@ -53,23 +53,96 @@ public interface IDrawContext : IDisposable
     /// <param name="rounding">The corner rounding radius in pixels.</param>
     public void DrawRect(Bounds2D bounds, Vector4 colour, float rounding);
     /// <summary>
-    /// Draws a string of text within the specified bounds.
+    /// Draws a rounded rectangle with a four-point gradient.
     /// </summary>
-    /// <param name="bounds">The bounds in which this string should be drawn.
-    /// Overflowing text will be truncated.</param>
-    /// <param name="size">The font size to render the text with.</param>
-    /// <param name="s">The string to draw.</param>
-    /// <param name="font">The font to draw the string with.</param>
-    /// <param name="colour">The colour to draw the text in.</param>
-    public void DrawText(Bounds2D bounds, float size, string s, BMFont font, Vector4 colour);
+    /// <param name="bounds">The absolute window-space bounds of the rectangle.</param>
+    /// <param name="colourA">The colour of the top-left corner.</param>
+    /// <param name="colourB">The colour of the top-right corner.</param>
+    /// <param name="colourC">The colour of the bottom-left corner.</param>
+    /// <param name="colourD">The colour of the bottom-right corner.</param>
+    /// <param name="rounding">The corner rounding radius in pixels.</param>
+    public void DrawGradient(Bounds2D bounds, Vector4 colourA, Vector4 colourB, Vector4 colourC, Vector4 colourD, float rounding);
+    /// <summary>
+    /// Draws a blurred, rounded rectangle.
+    /// </summary>
+    /// <param name="bounds">The absolute window-space bounds of the rectangle.</param>
+    /// <param name="colour">The colour of the rectangle.</param>
+    /// <param name="rounding">The corner rounding radius in pixels.</param>
+    /// <param name="blur">The blur radius in pixels.</param>
+    public void DrawShadow(Bounds2D bounds, Vector4 colour, float rounding, float blur);
+    /// <summary>
+    /// Draws an outline of a rounded rectangle.
+    /// </summary>
+    /// <param name="bounds">The absolute window-space bounds of the rectangle.</param>
+    /// <param name="colour">The colour of the rectangle.</param>
+    /// <param name="outlineThickness">The thickness of the outline in pixels.</param>
+    /// <param name="rounding">The corner rounding radius in pixels.</param>
+    public void DrawOutlineRect(Bounds2D bounds, Vector4 colour, float outlineThickness, float rounding);
+    /// <summary>
+    /// Draws an outline of a rounded rectangle with a four-point gradient.
+    /// </summary>
+    /// <param name="bounds">The absolute window-space bounds of the rectangle.</param>
+    /// <param name="colourA">The colour of the top-left corner.</param>
+    /// <param name="colourB">The colour of the top-right corner.</param>
+    /// <param name="colourC">The colour of the bottom-left corner.</param>
+    /// <param name="colourD">The colour of the bottom-right corner.</param>
+    /// <param name="outlineThickness">The thickness of the outline in pixels.</param>
+    /// <param name="rounding">The corner rounding radius in pixels.</param>
+    public void DrawOutlineGradient(Bounds2D bounds, Vector4 colourA, Vector4 colourB, Vector4 colourC, Vector4 colourD, float outlineThickness, float rounding);
+    /// <summary>
+    /// Draws a straight line connecting the given start and end points.
+    /// <para/>
+    /// The colour of the line is interpolated from the start-point to the end-point.
+    /// </summary>
+    /// <param name="start">The starting point of the line, in window-space coordinates.</param>
+    /// <param name="end">The end point of the line, in window-space coordinates.</param>
+    /// <param name="colourStart">The colour at the start of the line.</param>
+    /// <param name="colourEnd">The colour at the end of the line.</param>
+    /// <param name="thickness">The thickness of the line in pixels.</param>
+    public void DrawLine(Vector2 start, Vector2 end, Vector4 colourStart, Vector4 colourEnd, float thickness);
+    /// <summary>
+    /// Draws a filled polygonal shape from a collection of points.
+    /// <para/>
+    /// Points should define a clockwise triangle-strip (see <see href="https://en.wikipedia.org/wiki/Triangle_strip"/>).
+    /// <para/>
+    /// For instance to define the following shape, use the points described below:
+    /// <code>
+    /// B---D---F
+    /// | \ | \ |
+    /// A---C---E
+    /// 
+    /// positions = [A, B, C, D, E, F];
+    /// </code>
+    /// </summary>
+    /// <param name="points">The enumerable of points which defines the shape.</param>
+    public void DrawPolyFill(IEnumerable<PolyVert> points);
+    /// <summary>
+    /// Draws a series of line segments connecting the given points.
+    /// <para/>
+    /// The colour of the line is interpolated between each of the points.
+    /// </summary>
+    /// <param name="points">The enumerable of points which defines the line.</param>
+    /// <param name="thickness">The thickness of the line in pixels.</param>
+    public void DrawPolyLine(IEnumerable<PolyVert> points, float thickness);
+    /// <summary>
+    /// Draws a rounded rectangle filled with a texture.
+    /// </summary>
+    /// <param name="bounds">The absolute window-space bounds of the rectangle.</param>
+    /// <param name="texture">The texture to fill this rectangle with.</param>
+    /// <param name="rounding">The corner rounding radius in pixels.</param>
+    public void DrawTexture(Bounds2D bounds, ITextureHandle texture, float rounding);
+    // TODO: Currently text shaping is done purely by font metrics and text is always drawn left-to-right,
+    // for compatibility with non-latin writing systems, shaping should really be done during the layout
+    // phase and passed in to this method. Maybe we could have a ShapedFont class deriving from Font
+    // which implements this?
     /// <summary>
     /// Draws a string of text within the specified bounds.
     /// </summary>
     /// <param name="bounds">The bounds in which this string should be drawn.
     /// Overflowing text will be truncated.</param>
-    /// <param name="size">The font size to render the text with.</param>
     /// <param name="s">The string to draw.</param>
     /// <param name="font">The font to draw the string with.</param>
+    /// <param name="size">The font size to render the text with.</param>
     /// <param name="colour">The colour to draw the text in.</param>
     /// <param name="wordSpacing">The space between words, represented by the size of the space character in pixels.</param>
     /// <param name="charSpacing">An adjustment to the space between individual characters in pixels.</param>
@@ -77,7 +150,7 @@ public interface IDrawContext : IDisposable
     /// <param name="weight">The weight to render the characters with, where 0.5 
     /// represents the font's native weight. Values close to 0 or 1 are likely to show visual artifacts.</param>
     /// <param name="width">A width scale factor to stretch the font. A value of 1 represents no stretching.</param>
-    public void DrawText(Bounds2D bounds, float size, string s, BMFont font, Vector4 colour, 
+    public void DrawText(Bounds2D bounds, ReadOnlySpan<char> s, BMFont font, float size, Vector4 colour,
         float wordSpacing = 0, float charSpacing = 0, float skew = 0, float weight = 0.5f, float width = 1);
     /// <summary>
     /// Draws a single character within the specified bounds.
@@ -88,15 +161,6 @@ public interface IDrawContext : IDisposable
     /// <param name="font">The font to draw the char with.</param>
     /// <param name="colour">The colour to draw the char in.</param>
     public void DrawChar(Bounds2D bounds, float size, char c, BMFont font, Vector4 colour);
-    /// <summary>
-    /// Draws a rounded rectangle filled with a texture.
-    /// </summary>
-    /// <param name="bounds">The absolute window-space bounds of the rectangle.</param>
-    /// <param name="texture">The texture to fill this rectangle with.</param>
-    /// <param name="rounding">The corner rounding radius in pixels.</param>
-    public void DrawTexture(Bounds2D bounds, ITextureHandle texture, float rounding);
-    public void DrawGradient(Bounds2D bounds, Vector4 colourA, Vector4 colourB, Vector4 colourC, Vector4 colourD, float rounding);
-    public void DrawShadow(Bounds2D bounds, Vector4 colour, float rounding, float blur);
 
     /// <summary>
     /// Draw calls are expected to be automatically batched by the implementor to improve performance.
@@ -115,4 +179,10 @@ public interface IDrawContext : IDisposable
 #if DEBUG_LATENCY
     public void MarkLatencyTimerEnd(string? msg = null);
 #endif
+
+    public struct PolyVert
+    {
+        public Vector2 pos;
+        public Vector4 colour;
+    }
 }

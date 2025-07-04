@@ -3,6 +3,7 @@ using ArgonUI.Helpers;
 using ArgonUI.Input;
 using ArgonUI.SourceGenerator;
 using ArgonUI.Styling;
+using ArgonUI.UIElements.Abstract;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -41,7 +42,7 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <summary>
     /// Whether this element and it's children should be drawn. Elements which are not visible will not receive input events, nor will they participate in layout or drawing.
     /// </summary>
-    [Reactive, Stylable, Dirty(DirtyFlags.Layout)]
+    [Reactive, Stylable, Dirty(DirtyFlag.Layout)]
     private Visibility visible = Visibility.Visible;
     /// <summary>
     /// A set of stylable properties to be applied to this UIElement and it's decendants.
@@ -63,53 +64,61 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <summary>
     /// The absolute width of this element. Set to 0 to use automatic sizing.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
+    [Reactive, Dirty(DirtyFlag.Layout), Stylable]
     private int width;
     /// <summary>
     /// The absolute height of this element. Set to 0 to use automatic sizing.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
+    [Reactive, Dirty(DirtyFlag.Layout), Stylable]
     private int height;
     //public Vector2 Pivot { get => pivot; set => UpdateProperty(ref pivot, value); }
     /// <summary>
     /// How this element should be aligned vertically relative to it's parent.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
+    [Reactive, Dirty(DirtyFlag.Layout), Stylable]
     private Alignment verticalAlignment;
     /// <summary>
     /// How this element should be aligned horizontally relative to it's parent.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
+    [Reactive, Dirty(DirtyFlag.Layout), Stylable]
     private Alignment horizontalAlignment;
     /// <summary>
     /// How much space (in pixels) to leave around each edge of the element relative to the parent. Specified as a vector of (Top, Right, Bottom, Left).
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
+    [Reactive, Dirty(DirtyFlag.Layout), Stylable]
     private Thickness margin;
     /// <summary>
     /// Controls which elements are shown on top of each other. Higher z-indexes will be shown on top.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
+    [Reactive, Dirty(DirtyFlag.Layout), Stylable]
     private int zIndex;
     /// <summary>
     /// The smallest width to shrink this element down to when using automatic sizing.
+    /// <para/>
+    /// Set to a value <c> &lt; 0</c> to disable the constraint.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
+    [Reactive, Dirty(DirtyFlag.Layout), Stylable]
     private int minWidth = -1;
     /// <summary>
     /// The smallest height to shrink this element down to when using automatic sizing.
+    /// <para/>
+    /// Set to a value <c> &lt; 0</c> to disable the constraint.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
+    [Reactive, Dirty(DirtyFlag.Layout), Stylable]
     private int minHeight = -1;
     /// <summary>
     /// The largest width to expand this element up to when using automatic sizing.
+    /// <para/>
+    /// Set to a value <c> &lt; 0</c> to disable the constraint.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
+    [Reactive, Dirty(DirtyFlag.Layout), Stylable]
     private int maxWidth = -1;
     /// <summary>
     /// The largest height to expand this element up to when using automatic sizing.
+    /// <para/>
+    /// Set to a value <c> &lt; 0</c> to disable the constraint.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), Stylable]
+    [Reactive, Dirty(DirtyFlag.Layout), Stylable]
     private int maxHeight = -1;
 
     /// <summary>
@@ -132,17 +141,17 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// Gets the dirty flags of this element which determine if the element needs to be re-rendered or re-laid out.
     /// </summary>
     /// <remarks>
-    /// Use the <see cref="Dirty(DirtyFlags)"/> and <see cref="ClearDirtyFlag(DirtyFlags)"/> methods to set the dirty flags.
+    /// Use the <see cref="Dirty(DirtyFlag)"/> and <see cref="ClearDirtyFlag(DirtyFlag)"/> methods to set the dirty flags.
     /// </remarks>
-    public DirtyFlags DirtyFlags { get => dirtyFlag; protected internal set => dirtyFlag = value; }
+    public DirtyFlag DirtyFlags { get => dirtyFlag; protected internal set => dirtyFlag = value; }
     /// <summary>
     /// Gets the width of the element when using automatic sizing.
     /// </summary>
-    public int DesiredWidth => desiredSize.x;
+    public float DesiredWidth => desiredSize.X;
     /// <summary>
     /// Gets the height of the element when using automatic sizing.
     /// </summary>
-    public int DesiredHeight => desiredSize.y;
+    public float DesiredHeight => desiredSize.Y;
     /// <summary>
     /// Gets whether the mouse is currently hovering over this element.
     /// </summary>
@@ -179,8 +188,8 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <see cref="RenderedBoundsAbsolute"/> and the previous rendered bounds.
     /// </summary>
     internal Bounds2D invalidatedRenderBounds;
-    internal VectorInt2 desiredSize;
-    private DirtyFlags dirtyFlag = DirtyFlags.ContentAndLayout;
+    internal Vector2 desiredSize;
+    private DirtyFlag dirtyFlag = DirtyFlag.ContentAndLayout;
     private bool isHovered;
     private bool isPressed;
     private bool isFocused;
@@ -304,32 +313,28 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <summary>
     /// Represents the method that handles mouse down/up events.
     /// </summary>
-    /// <param name="inputManager"></param>
-    /// <param name="button">The mouse button which was pressed/released.</param>
-    public delegate void MouseButtonEventHandler(InputManager inputManager, MouseButton button);
+    /// <param name="args"></param>
+    public delegate void MouseButtonEventHandler(MouseButtonInputEventArgs args);
     /// <summary>
     /// Represents the method that handles mouse movement events.
     /// </summary>
-    /// <param name="inputManager"></param>
-    /// <param name="pos">The new position of the mouse.</param>
-    public delegate void MousePosEventHandler(InputManager inputManager, VectorInt2 pos);
+    /// <param name="args"></param>
+    public delegate void MousePosEventHandler(MousePositionInputEventArgs args);
     /// <summary>
     /// Represents the method that handles mouse scroll events.
     /// </summary>
-    /// <param name="inputManager"></param>
-    /// <param name="delta">How much the mouse has scrolled since this event was last invoked.</param>
-    public delegate void MouseScrollEventHandler(InputManager inputManager, Vector2 delta);
+    /// <param name="args"></param>
+    public delegate void MouseScrollEventHandler(MouseScrollInputEventArgs args);
     /// <summary>
     /// Represents the method that handles keyboard events.
     /// </summary>
-    /// <param name="inputManager"></param>
-    /// <param name="key">The key that was pressed/released.</param>
-    public delegate void KeyEventHandler(InputManager inputManager, KeyCode key);
+    /// <param name="args"></param>
+    public delegate void KeyEventHandler(KeyboardInputEventArgs args);
     /// <summary>
     /// Represents the method that handles events from the input manager.
     /// </summary>
-    /// <param name="inputManager"></param>
-    public delegate void InputEventHandler(InputManager inputManager);
+    /// <param name="args"></param>
+    public delegate void InputEventHandler(InputEventArgs args);
     #endregion
 
     public UIElement()
@@ -343,8 +348,8 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <summary>
     /// Marks this element as dirty, forcing the UI engine to redraw this element and it's children when it's next dispatched.
     /// </summary>
-    /// <param name="flags">Which <see cref="ArgonUI.UIElements.DirtyFlags"/> to set.</param>
-    public virtual void Dirty(DirtyFlags flags)
+    /// <param name="flags">Which <see cref="Abstract.DirtyFlag"/> to set.</param>
+    public virtual void Dirty(DirtyFlag flags)
     {
         var prev = dirtyFlag;
         var newFlags = prev | flags;
@@ -359,11 +364,11 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
 #endif
 
         // Propagate dirty flags up
-        var toPropagate = flags & (DirtyFlags.ChildContent | DirtyFlags.ChildLayout);
-        if ((flags & DirtyFlags.Layout) != 0)
-            toPropagate |= DirtyFlags.ChildLayout;
-        if ((flags & DirtyFlags.Content) != 0)
-            toPropagate |= DirtyFlags.ChildContent;
+        var toPropagate = flags & (DirtyFlag.ChildContent | DirtyFlag.ChildLayout);
+        if ((flags & DirtyFlag.Layout) != 0)
+            toPropagate |= DirtyFlag.ChildLayout;
+        if ((flags & DirtyFlag.Content) != 0)
+            toPropagate |= DirtyFlag.ChildContent;
 
         Parent?.Dirty(toPropagate);
     }
@@ -371,8 +376,8 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// <summary>
     /// Clears the given dirty flags from the UI element.
     /// </summary>
-    /// <param name="flags">Which <see cref="ArgonUI.UIElements.DirtyFlags"/> to clear.</param>
-    public virtual void ClearDirtyFlag(DirtyFlags flags)
+    /// <param name="flags">Which <see cref="Abstract.DirtyFlag"/> to clear.</param>
+    public virtual void ClearDirtyFlag(DirtyFlag flags)
     {
         dirtyFlag &= ~flags;
     }
@@ -390,6 +395,15 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     public void Dispose()
     {
         style?.Unregister(this);
+    }
+
+    /// <summary>
+    /// Sets the <see cref="InputManager"/>'s currently (keyboard) focussed element to this <see cref="UIElement"/>.
+    /// </summary>
+    public void Focus()
+    {
+        if (window != null)
+            window.InputManager.FocussedElement = this;
     }
 
     /// <summary>
@@ -419,7 +433,7 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
         //       I'm hesitant to fully automate parameter cloning (through reflection or source
         //       generation), as there is some logic to apply to it which could be complex.
         // Not sure if we should invalidate dirty flags here or not...
-        target.dirtyFlag = DirtyFlags.Layout;
+        target.dirtyFlag = DirtyFlag.Layout;
         target.focusable = focusable;
         target.height = height;
         target.width = width;
@@ -446,9 +460,9 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     /// Layout() and Draw() occur from root node to leaves, whereas measure is invoked on the leaves first working it's way up to the root.
     /// </remarks>
     /// <returns>The desired width and height of this element.</returns>
-    internal protected virtual VectorInt2 Measure()
+    internal protected virtual Vector2 Measure()
     {
-        return new VectorInt2(width, height);
+        return new Vector2(width, height);
     }
 
     // Internal
@@ -461,8 +475,8 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
     {
         // Apply limits to the width and height
         var parentSize = parent.Size;
-        var desiredWidth = width > 0 ? width : DesiredWidth;
-        var desiredHeight = height > 0 ? height : DesiredHeight;
+        float desiredWidth = width > 0 ? width : DesiredWidth;
+        float desiredHeight = height > 0 ? height : DesiredHeight;
 
         if (minWidth >= 0)
             desiredWidth = Math.Max(desiredWidth, minWidth);
@@ -548,79 +562,75 @@ public abstract partial class UIElement : ReactiveObject, IDisposable
         RenderedBounds = new(bounds.topLeft - parentBounds.topLeft, bounds.bottomRight - parentBounds.topLeft);
 
         // Invalidating the layout implies invalidating the content
-        Dirty(DirtyFlags.Content);
+        Dirty(DirtyFlag.Content);
 
         return bounds;
     }
 
-    internal void InvokeOnMouseDown(InputManager inputManager, MouseButton button)
+    internal void InvokeOnMouseDown(MouseButtonInputEventArgs args)
     {
         isPressed = true;
         OnStylableInputEvent?.Invoke(this, UIElementInputChange.MousePress);
-        OnMouseDown?.Invoke(inputManager, button);
+        OnMouseDown?.Invoke(args);
     }
-    internal void InvokeOnMouseUp(InputManager inputManager, MouseButton button)
+    internal void InvokeOnMouseUp(MouseButtonInputEventArgs args)
     {
         isPressed = false;
         OnStylableInputEvent?.Invoke(this, UIElementInputChange.MousePress);
-        OnMouseUp?.Invoke(inputManager, button);
+        OnMouseUp?.Invoke(args);
     }
-    internal void InvokeOnMouseEnter(InputManager inputManager, VectorInt2 pos)
+    internal void InvokeOnMouseEnter(MousePositionInputEventArgs args)
     {
         isHovered = true;
         OnStylableInputEvent?.Invoke(this, UIElementInputChange.MouseHover);
-        OnMouseEnter?.Invoke(inputManager, pos);
-
-        Parent?.InvokeOnMouseEnter(inputManager, pos);
+        OnMouseEnter?.Invoke(args);
     }
-    internal void InvokeOnMouseLeave(InputManager inputManager, VectorInt2 pos)
+    internal void InvokeOnMouseLeave(MousePositionInputEventArgs args)
     {
         isHovered = false;
         OnStylableInputEvent?.Invoke(this, UIElementInputChange.MouseHover);
-        OnMouseLeave?.Invoke(inputManager, pos);
-
-        Parent?.InvokeOnMouseLeave(inputManager, pos);
+        OnMouseLeave?.Invoke(args);
     }
-    internal void InvokeOnMouseOver(InputManager inputManager, VectorInt2 pos)
+    internal void InvokeOnMouseOver(MousePositionInputEventArgs args)
     {
         isHovered = true;
         //OnStylableInputEvent?.Invoke(UIElementInputChange.MouseHover);
-        OnMouseOver?.Invoke(inputManager, pos);
+        OnMouseOver?.Invoke(args);
+    }
+    internal void InvokeOnDoubleClick(MouseButtonInputEventArgs args)
+    {
+        isPressed = true;
+        OnStylableInputEvent?.Invoke(this, UIElementInputChange.MousePress);
+        OnDoubleClick?.Invoke(args);
+    }
 
-        // TODO: Bubble events up to parents
-        // We might consider doing the bubbling in the input manager, and passing a shared
-        // reference to the event args object so that subscribers can stop the bubbling
-        // of the event.
-        Parent?.InvokeOnMouseOver(inputManager, pos);
-    }
-    internal void InvokeOnDoubleClick(InputManager inputManager, MouseButton button) => OnDoubleClick?.Invoke(inputManager, button);
-    internal void InvokeOnMouseWheel(InputManager inputManager, Vector2 delta) => OnMouseWheel?.Invoke(inputManager, delta);
-    internal void InvokeOnKeyDown(InputManager inputManager, KeyCode key)
+    internal void InvokeOnMouseWheel(MouseScrollInputEventArgs args) => OnMouseWheel?.Invoke(args);
+    internal void InvokeOnKeyDown(KeyboardInputEventArgs args)
     {
         OnStylableInputEvent?.Invoke(this, UIElementInputChange.KeyPress);
-        OnKeyDown?.Invoke(inputManager, key);
+        OnKeyDown?.Invoke(args);
     }
-    internal void InvokeOnKeyUp(InputManager inputManager, KeyCode key)
+    internal void InvokeOnKeyUp(KeyboardInputEventArgs args)
     {
         OnStylableInputEvent?.Invoke(this, UIElementInputChange.KeyPress);
-        OnKeyUp?.Invoke(inputManager, key);
+        OnKeyUp?.Invoke(args);
     }
-    internal void InvokeOnDragStart(InputManager inputManager) => OnDragStart?.Invoke(inputManager);
-    internal void InvokeOnDrop(InputManager inputManager) => OnDrop?.Invoke(inputManager);
-    internal void InvokeOnDragEnter(InputManager inputManager) => OnDragEnter?.Invoke(inputManager);
-    internal void InvokeOnDragLeave(InputManager inputManager) => OnDragLeave?.Invoke(inputManager);
-    internal void InvokeOnDragOver(InputManager inputManager) => OnDragOver?.Invoke(inputManager);
-    internal void InvokeOnFocusGot(InputManager inputManager)
+    internal void InvokeOnDragStart(InputEventArgs args) => OnDragStart?.Invoke(args);
+    internal void InvokeOnDrop(InputEventArgs args) => OnDrop?.Invoke(args);
+    internal void InvokeOnDragEnter(InputEventArgs args) => OnDragEnter?.Invoke(args);
+    internal void InvokeOnDragLeave(InputEventArgs args) => OnDragLeave?.Invoke(args);
+    internal void InvokeOnDragOver(InputEventArgs args) => OnDragOver?.Invoke(args);
+    internal void InvokeOnFocusGot(FocusInputEventArgs args)
     {
         isFocused = true;
         OnStylableInputEvent?.Invoke(this, UIElementInputChange.Focus);
-        OnFocusGot?.Invoke(inputManager);
+        OnFocusGot?.Invoke(args);
     }
-    internal void InvokeOnFocusLost(InputManager inputManager)
+    internal void InvokeOnFocusLost(FocusInputEventArgs args)
     {
         isFocused = false;
         OnStylableInputEvent?.Invoke(this, UIElementInputChange.Focus);
-        OnFocusLost?.Invoke(inputManager);
+        OnFocusLost?.Invoke(args);
     }
     internal void InvokeOnLoaded()
     {

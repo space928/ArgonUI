@@ -1,14 +1,10 @@
-﻿using ArgonUI.UIElements;
-using ArgonUI.Drawing;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using ArgonUI.Drawing;
 using ArgonUI.Helpers;
-using System.Runtime.InteropServices;
+using ArgonUI.UIElements;
+using ArgonUI.UIElements.Abstract;
+using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Diagnostics;
 using System.Threading;
 
 namespace ArgonUI;
@@ -101,7 +97,7 @@ internal class UIRenderer
 
     private static bool MeasureElementRecurse(UIElement element)
     {
-        if (element is UIContainer container && (element.DirtyFlags & DirtyFlags.ChildLayout) != 0)
+        if (element is UIContainer container && (element.DirtyFlags & DirtyFlag.ChildLayout) != 0)
         {
             bool changed = false;
             for (int i = 0; i < container.Children.Count; i++)
@@ -113,13 +109,13 @@ internal class UIRenderer
                 container.BeforeLayoutChildren();
         }
 
-        if ((element.DirtyFlags & DirtyFlags.Layout) != 0)
+        if ((element.DirtyFlags & DirtyFlag.Layout) != 0)
         {
             var oldSize = element.desiredSize;
             if (element.Visible != Visibility.Hidden)
                 element.desiredSize = element.Measure();
             else
-                element.desiredSize = VectorInt2.Zero;
+                element.desiredSize = Vector2.Zero;
             if (element.desiredSize != oldSize)
                 return true;
         }
@@ -128,9 +124,9 @@ internal class UIRenderer
 
     private static void LayoutElementRecurse(UIElement element, int childIndex = 0)
     {
-        if ((element.DirtyFlags & DirtyFlags.Layout) != 0)
+        if ((element.DirtyFlags & DirtyFlag.Layout) != 0)
         {
-            element.ClearDirtyFlag(DirtyFlags.Layout);
+            element.ClearDirtyFlag(DirtyFlag.Layout);
             if (element.Visible != Visibility.Hidden)
             {
                 var bounds = element.Layout(childIndex);
@@ -147,10 +143,10 @@ internal class UIRenderer
             }
         }
 
-        if (element is UIContainer container && (element.DirtyFlags & DirtyFlags.ChildLayout) != 0)
+        if (element is UIContainer container && (element.DirtyFlags & DirtyFlag.ChildLayout) != 0)
         {
             container.LayoutChildren();
-            element.ClearDirtyFlag(DirtyFlags.ChildLayout);
+            element.ClearDirtyFlag(DirtyFlag.ChildLayout);
             try
             {
                 for (int i = 0; i < container.Children.Count; i++)
@@ -166,9 +162,9 @@ internal class UIRenderer
     private void MeasureDrawnElementRecurse(UIElement element)
     {
         // Expand the draw bounds to include an elements with dirty content
-        if ((element.DirtyFlags & DirtyFlags.Content) != 0)
+        if ((element.DirtyFlags & DirtyFlag.Content) != 0)
         {
-            element.ClearDirtyFlag(DirtyFlags.Content);
+            element.ClearDirtyFlag(DirtyFlag.Content);
 
             // Draw bounds should be computed during layout...
             if (!drawBounds.HasValue)
@@ -180,9 +176,9 @@ internal class UIRenderer
             // drawBounds won't expand any further. We still need to clear any dirty flags though.
             ClearContentFlagsRecursive(element);
         } 
-        else if ((element.DirtyFlags & DirtyFlags.ChildContent) != 0 && element is UIContainer container)
+        else if ((element.DirtyFlags & DirtyFlag.ChildContent) != 0 && element is UIContainer container)
         {
-            element.ClearDirtyFlag(DirtyFlags.ChildContent);
+            element.ClearDirtyFlag(DirtyFlag.ChildContent);
             try
             {
                 foreach (UIElement? child in container.Children)
@@ -194,10 +190,10 @@ internal class UIRenderer
 
     private static void ClearContentFlagsRecursive(UIElement element)
     {
-        element.ClearDirtyFlag(DirtyFlags.Content);
-        if ((element.DirtyFlags & DirtyFlags.ChildContent) != 0 && element is UIContainer container)
+        element.ClearDirtyFlag(DirtyFlag.Content);
+        if ((element.DirtyFlags & DirtyFlag.ChildContent) != 0 && element is UIContainer container)
         {
-            element.ClearDirtyFlag(DirtyFlags.ChildContent);
+            element.ClearDirtyFlag(DirtyFlag.ChildContent);
             try
             {
                 foreach (UIElement? child in container.Children)
@@ -217,6 +213,10 @@ internal class UIRenderer
 
         int index = element.treeDepth + element.ZIndex;
 
+        // TODO: A lot of UI elements are likely to layer multiple different draw commands. It would be good
+        // if we could expose the layering system to them so that they can take advantage of auto batching
+        // with neighbours. Otherwise we need to layer UI elements, which is a bit heavy weight...
+        // This is notably the case for decoraters like outlines or shadows.
         ref var cmdList = ref drawCommands.GetRef(index);
         if (Unsafe.IsNullRef(ref cmdList))
         {

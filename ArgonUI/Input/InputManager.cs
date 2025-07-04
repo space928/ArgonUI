@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using ArgonUI.Helpers;
 using ArgonUI.UIElements;
 
 namespace ArgonUI.Input;
@@ -16,12 +17,13 @@ public class InputManager
 {
     private readonly ArgonManager argonManager;
     private long lastClickTime;
-    private long lastMouseMoveTime;
+    //private long lastMouseMoveTime;
     private VectorInt2 lastMousePos;
     private UIElement? lastHoveredElement;
     private UIElement? kbFocussedElement;
     private UIElement? mouseCaptureElement;
     private readonly Dictionary<KeyCode, bool> pressedKeys;
+    private readonly long doubleClickTime;
 
     public InputManager(ArgonManager argonManager)
     {
@@ -33,20 +35,39 @@ public class InputManager
 #else
         pressedKeys = new(Enum.GetValues<KeyCode>().Select(x => new KeyValuePair<KeyCode, bool>(x, false)));
 #endif
+        doubleClickTime = TimeSpan.FromMilliseconds(300).Ticks;
     }
 
     /// <summary>
     /// Gets or sets whichever element currently has keyboard focus.
     /// A value of <see langword="null"/> indicates no element has keyboard focus.
     /// </summary>
-    public UIElement? FocussedElement 
-    { 
+    public UIElement? FocussedElement
+    {
         get => kbFocussedElement;
         set
         {
-            kbFocussedElement?.InvokeOnFocusLost(this);
+            if (value == kbFocussedElement) 
+                return;
+
+            var args = ObjectPool<FocusInputEventArgs>.Rent();
+            args.InputManager = this;
+            args.Target = kbFocussedElement;
+            var obj = kbFocussedElement;
+            do
+            {
+                obj?.InvokeOnFocusLost(args);
+            } while (!args.Handled && (obj = obj?.Parent) != null);
+
             kbFocussedElement = value;
-            kbFocussedElement?.InvokeOnFocusGot(this);
+
+            obj = kbFocussedElement;
+            do
+            {
+                obj?.InvokeOnFocusGot(args);
+            } while (!args.Handled && (obj = obj?.Parent) != null);
+
+            ObjectPool<FocusInputEventArgs>.Return(args);
         }
     }
 
@@ -87,11 +108,35 @@ public class InputManager
 #if DEBUG && DEBUG_PROP_UPDATES
             Debug.WriteLine($"[InputManager] Hovered element changed {lastHoveredElement} -> {hit}");
 #endif
-            lastHoveredElement?.InvokeOnMouseLeave(this, mousePos);
-            hit?.InvokeOnMouseEnter(this, mousePos);
+            var args = ObjectPool<MousePositionInputEventArgs>.Rent();
+            args.InputManager = this;
+            args.Target = lastHoveredElement;
+            args.MousePosition = mousePos;
+            var obj = lastHoveredElement;
+            do
+            {
+                obj?.InvokeOnMouseLeave(args);
+            } while (!args.Handled && (obj = obj?.Parent) != null);
+
+            args.Target = hit;
+            obj = hit;
+            do
+            {
+                obj?.InvokeOnMouseEnter(args);
+            } while (!args.Handled && (obj = obj?.Parent) != null);
+            ObjectPool<MousePositionInputEventArgs>.Return(args);
         }
 
-        hit?.InvokeOnMouseOver(this, mousePos);
+        var hoverArgs = ObjectPool<MousePositionInputEventArgs>.Rent();
+        hoverArgs.InputManager = this;
+        hoverArgs.Target = hit;
+        hoverArgs.MousePosition = mousePos;
+        var hoverObj = hit;
+        do
+        {
+            hoverObj?.InvokeOnMouseOver(hoverArgs);
+        } while (!hoverArgs.Handled && (hoverObj = hoverObj?.Parent) != null);
+        ObjectPool<MousePositionInputEventArgs>.Return(hoverArgs);
 
         lastHoveredElement = hit;
         lastMousePos = mousePos;
@@ -99,29 +144,83 @@ public class InputManager
 
     internal void OnMouseUp(UIWindow sender, MouseButton mouseButton)
     {
-        lastHoveredElement?.InvokeOnMouseUp(this, mouseButton);
+        var args = ObjectPool<MouseButtonInputEventArgs>.Rent();
+        args.InputManager = this;
+        args.Target = lastHoveredElement;
+        args.MouseButton = mouseButton;
+        var hoverObj = lastHoveredElement;
+        do
+        {
+            hoverObj?.InvokeOnMouseUp(args);
+        } while (!args.Handled && (hoverObj = hoverObj?.Parent) != null);
+        ObjectPool<MouseButtonInputEventArgs>.Return(args);
     }
 
     internal void OnMouseDown(UIWindow sender, MouseButton mouseButton)
     {
-        lastHoveredElement?.InvokeOnMouseDown(this, mouseButton);
+        var now = DateTime.UtcNow.Ticks;
+        var args = ObjectPool<MouseButtonInputEventArgs>.Rent();
+        args.InputManager = this;
+        args.Target = lastHoveredElement;
+        args.MouseButton = mouseButton;
+        var hoverObj = lastHoveredElement;
+        if (now - lastClickTime <= doubleClickTime)
+        {
+            do
+            {
+                hoverObj?.InvokeOnDoubleClick(args);
+            } while (!args.Handled && (hoverObj = hoverObj?.Parent) != null);
+        }
+        do
+        {
+            hoverObj?.InvokeOnMouseDown(args);
+        } while (!args.Handled && (hoverObj = hoverObj?.Parent) != null);
+        ObjectPool<MouseButtonInputEventArgs>.Return(args);
+        lastClickTime = now;
     }
 
     internal void OnMouseWheel(UIWindow sender, Vector2 delta)
     {
-        lastHoveredElement?.InvokeOnMouseWheel(this, delta);
+        var args = ObjectPool<MouseScrollInputEventArgs>.Rent();
+        args.InputManager = this;
+        args.Target = lastHoveredElement;
+        args.MouseScroll = delta;
+        var hoverObj = lastHoveredElement;
+        do
+        {
+            hoverObj?.InvokeOnMouseWheel(args);
+        } while (!args.Handled && (hoverObj = hoverObj?.Parent) != null);
+        ObjectPool<MouseScrollInputEventArgs>.Return(args);
     }
 
     internal void OnKeyDown(UIWindow sender, KeyCode key)
     {
         pressedKeys[key] = true;
-        lastHoveredElement?.InvokeOnKeyDown(this, key);
+        var args = ObjectPool<KeyboardInputEventArgs>.Rent();
+        args.InputManager = this;
+        args.Target = FocussedElement ?? lastHoveredElement;
+        args.Key = key;
+        var hoverObj = args.Target;
+        do
+        {
+            hoverObj?.InvokeOnKeyDown(args);
+        } while (!args.Handled && (hoverObj = hoverObj?.Parent) != null);
+        ObjectPool<KeyboardInputEventArgs>.Return(args);
     }
 
     internal void OnKeyUp(UIWindow sender, KeyCode key)
     {
         pressedKeys[key] = false;
-        lastHoveredElement?.InvokeOnKeyUp(this, key);
+        var args = ObjectPool<KeyboardInputEventArgs>.Rent();
+        args.InputManager = this;
+        args.Target = FocussedElement ?? lastHoveredElement;
+        args.Key = key;
+        var hoverObj = args.Target;
+        do
+        {
+            hoverObj?.InvokeOnKeyUp(args);
+        } while (!args.Handled && (hoverObj = hoverObj?.Parent) != null);
+        ObjectPool<KeyboardInputEventArgs>.Return(args);
     }
 
     /// <summary>
@@ -180,4 +279,84 @@ public enum MouseButton
     Mouse7,
     Mouse8,
     Mouse9,
+}
+
+public class InputEventArgs(InputManager? inputManager, UIElement? target, bool handled)
+{
+    /// <summary>
+    /// The input manager which sent this event.
+    /// </summary>
+    public InputManager? InputManager { get; internal set; } = inputManager;
+    /// <summary>
+    /// The <see cref="UIElement"/> which initially received this event.
+    /// </summary>
+    public UIElement? Target { get; internal set; } = target;
+    /// <summary>
+    /// Whether this event has been handled yet. Once set to <see langword="true"/>, this event 
+    /// will stop propagating up to parent elements.
+    /// </summary>
+    public bool Handled { get; set; } = handled;
+
+    public InputEventArgs() : this(null, null, false) { }
+}
+
+public sealed class FocusInputEventArgs : InputEventArgs
+{
+    public FocusInputEventArgs(InputManager? inputManager, UIElement? target, bool handled) : base(inputManager, target, handled)
+    {
+    }
+
+    public FocusInputEventArgs() : this(null, null, false) { }
+}
+
+public sealed class MousePositionInputEventArgs : InputEventArgs
+{
+    public VectorInt2 MousePosition { get; internal set; }
+
+    public MousePositionInputEventArgs(InputManager? inputManager, UIElement? target, bool handled, VectorInt2 mousePos)
+        : base(inputManager, target, handled)
+    {
+        MousePosition = mousePos;
+    }
+
+    public MousePositionInputEventArgs() : this(null, null, false, VectorInt2.Zero) { }
+}
+
+public sealed class MouseButtonInputEventArgs : InputEventArgs
+{
+    public MouseButton MouseButton { get; internal set; }
+
+    public MouseButtonInputEventArgs(InputManager? inputManager, UIElement? target, bool handled, MouseButton mouseButton)
+        : base(inputManager, target, handled)
+    {
+        MouseButton = mouseButton;
+    }
+
+    public MouseButtonInputEventArgs() : this(null, null, false, MouseButton.Mouse0) { }
+}
+
+public sealed class MouseScrollInputEventArgs : InputEventArgs
+{
+    public Vector2 MouseScroll { get; internal set; }
+
+    public MouseScrollInputEventArgs(InputManager? inputManager, UIElement? target, bool handled, Vector2 mouseScroll)
+        : base(inputManager, target, handled)
+    {
+        MouseScroll = mouseScroll;
+    }
+
+    public MouseScrollInputEventArgs() : this(null, null, false, Vector2.Zero) { }
+}
+
+public sealed class KeyboardInputEventArgs : InputEventArgs
+{
+    public KeyCode Key { get; internal set; }
+
+    public KeyboardInputEventArgs(InputManager? inputManager, UIElement? target, bool handled, KeyCode key)
+        : base(inputManager, target, handled)
+    {
+        Key = key;
+    }
+
+    public KeyboardInputEventArgs() : this(null, null, false, KeyCode.Unknown) { }
 }
