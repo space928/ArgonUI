@@ -1,5 +1,6 @@
 ﻿using ArgonUI.Drawing;
 using ArgonUI.SourceGenerator;
+using ArgonUI.UIElements.Abstract;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -20,7 +21,7 @@ public partial class UIWindowElement : UIContainer
     /// <summary>
     /// The background colour of this window.
     /// </summary>
-    [Reactive("BGColour"), Dirty(DirtyFlags.Content), Stylable]
+    [Reactive("BGColour"), Dirty(DirtyFlag.Content), Stylable]
     private Vector4 bgColour;
 
     //public new UIWindow Window { get; init; }
@@ -41,21 +42,21 @@ public partial class UIWindowElement : UIContainer
         {
             Width = this.window!.Size.x;
             Height = this.window!.Size.y;
-            Dirty(DirtyFlags.Layout);
+            Dirty(DirtyFlag.Layout);
         };
         window.OnResize += () =>
         {
             Width = this.window!.Size.x;
             Height = this.window!.Size.y;
-            Dirty(DirtyFlags.Layout);
+            Dirty(DirtyFlag.Layout);
         };
     }
 
-    public override void Dirty(DirtyFlags flags)
+    public override void Dirty(DirtyFlag flags)
     {
         base.Dirty(flags);
 
-        if (flags != DirtyFlags.None)
+        if (flags != DirtyFlag.None)
         {
             Window!.RequestRedraw();
         }
@@ -116,11 +117,11 @@ public partial class UIWindowElement : UIContainer
         if (bounds != RenderedBoundsAbsolute)
         {
             foreach (var child in Children)
-                child.Dirty(DirtyFlags.Layout);
+                child.Dirty(DirtyFlag.Layout);
         }
 
         // Invalidating the layout implies invalidating the content
-        Dirty(DirtyFlags.Content);
+        Dirty(DirtyFlag.Content);
         return bounds;
     }
 

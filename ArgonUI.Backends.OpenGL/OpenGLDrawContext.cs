@@ -18,14 +18,8 @@ internal class OpenGLDrawContext : IDrawContext
     private readonly GL gl;
     private UIWindow? window;
     private Vector2 resolution;
-    private Shader? rectShader;
-    private Shader? textShader;
-    private Shader? textureShader;
-    private VertexArrayObject<uint, uint>? rectVAO;
-    private VertexArrayObject<uint, uint>? textVAO;
+    private ShaderManager shaderManager;
 
-    private VertexArrayObject<uint, uint>? activeVao;
-    private Shader? activeShader;
     private Texture2D? activeTexture;
     private int vertPos;
     private int vertCount;
@@ -37,6 +31,7 @@ internal class OpenGLDrawContext : IDrawContext
     {
         this.gl = gl;
         vertBuff = new uint[32*1024];
+        shaderManager = new();
     }
 
 #if DEBUG_LATENCY || DEBUG
@@ -53,11 +48,6 @@ internal class OpenGLDrawContext : IDrawContext
     public void InitRenderer(UIWindow window)
     {
         this.window = window;
-        //try
-        //{
-        rectShader = new(gl, "ui_vert.glsl", "ui_frag.glsl", ["#define SUPPORT_ROUNDING", "#define SUPPORT_ALPHA"]);
-        textShader = new(gl, "ui_vert.glsl", "ui_frag.glsl", ["#define SUPPORT_TEXT", "#define SUPPORT_ALPHA"]);
-        textureShader = new(gl, "ui_vert.glsl", "ui_frag.glsl", ["#define SUPPORT_TEXTURE", "#define SUPPORT_ROUNDING", "#define SUPPORT_ALPHA"]);
 
         gl.FrontFace(FrontFaceDirection.CW);
         //gl.Enable(EnableCap.DepthTest);
@@ -73,8 +63,7 @@ internal class OpenGLDrawContext : IDrawContext
         gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
         gl.Enable(EnableCap.ScissorTest);
 
-        InitRectVAO();
-        InitTextVAO();
+        shaderManager.Init(gl);
         //vao = new(gl, new BufferObject<uint>(gl, [], BufferTargetARB.ArrayBuffer), null);
         /*}
         catch (Exception ex)
@@ -85,12 +74,7 @@ internal class OpenGLDrawContext : IDrawContext
 
     public void Dispose()
     {
-        rectVAO?.Dispose();
-        textVAO?.Dispose();
-        //vao?.Dispose();
-        rectShader?.Dispose();
-        textShader?.Dispose();
-        textureShader?.Dispose();
+        shaderManager.Dispose();
         gl.Dispose();
     }
 
@@ -141,95 +125,177 @@ internal class OpenGLDrawContext : IDrawContext
     /// <summary>
     /// Checks if the vertex buffer has enough space for this draw.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="elems"></param>
+    /// <typeparam name="TVert">The type of vertex to check space for.</typeparam>
+    /// <param name="elems">The number of vertices to check for space for.</param>
     /// <returns><see langword="true"/> if the batch needs to be flushed.</returns>
-    private bool CheckSpace<T>(int elems)
+    private bool CheckSpace<TVert>(int elems)
     {
-        return (vertBuff.Length * Unsafe.SizeOf<uint>()) - vertPos < Unsafe.SizeOf<RectVert>() * elems;
+        return (vertBuff.Length * Unsafe.SizeOf<uint>()) - vertPos < Unsafe.SizeOf<TVert>() * elems;
     }
 
-    private void InitRectVAO()
+    #region Rectangles
+    public void DrawRect(Bounds2D bounds, Vector4 colour, float rounding)
     {
-        rectVAO?.Dispose();
+        ShaderFeature shaderFeatures = ShaderFeature.Rounding | ShaderFeature.Alpha;
+        if (!shaderManager.IsShaderActive(shaderFeatures))
+        {
+            FlushBatch();
+            shaderManager.SetActiveShader(gl, shaderFeatures);
+        }
 
-        VertexArrayObject<uint, uint> vao = new(gl, new BufferObject<uint>(gl, [], BufferTargetARB.ArrayBuffer), null);
-        vao.Bind();
-        vao.VertexAttributePointer(0, 2, VertexAttribType.Float, 11, 0);
-        vao.VertexAttributePointer(1, 4, VertexAttribType.Float, 11, 2);
-        vao.VertexAttributePointer(3, 2, VertexAttribType.Float, 11, 6);
-        vao.VertexAttributePointer(4, 3, VertexAttribType.Float, 11, 8);
-        vao.Unbind();
-        rectVAO = vao;
-    }
-
-    private void InitTextVAO()
-    {
-        textVAO?.Dispose();
-
-        VertexArrayObject<uint, uint> vao = new(gl, new BufferObject<uint>(gl, [], BufferTargetARB.ArrayBuffer), null);
-        vao.Bind();
-        vao.VertexAttributePointer(0, 2, VertexAttribType.Float, 9, 0);
-        vao.VertexAttributePointer(1, 4, VertexAttribType.Float, 9, 2);
-        vao.VertexAttributePointer(2, 3, VertexAttribType.Float, 9, 6);
-        vao.Unbind();
-        textVAO = vao;
-    }
-
-    public void DrawGradient(Bounds2D bounds, Vector4 colourA, Vector4 colourB, Vector4 colourC, Vector4 colourD, float rounding)
-    {
-        if (activeShader != rectShader || CheckSpace<RectVert>(6))
+        if (CheckSpace<RectRoundVert>(6))
             FlushBatch();
 
-        if (activeShader != rectShader)
-        {
-            activeShader = rectShader;
-            activeVao = rectVAO;
-            activeTexture = null;
-        }
-        Vector3 rectProps = new(bounds.Width, bounds.Height, rounding);
+        Vector4 rectProps = new(bounds.Size, rounding, 0);
 
         var writer = vertBuff.GetBinaryWriter(vertPos);
-        writer.Write(new RectVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colourB, new(0, 1), rectProps));
-        writer.Write(new RectVert(bounds.topLeft, colourA, new(0, 0), rectProps));
-        writer.Write(new RectVert(bounds.bottomRight, colourD, new(1, 1), rectProps));
-        writer.Write(new RectVert(bounds.bottomRight, colourD, new(1, 1), rectProps));
-        writer.Write(new RectVert(bounds.topLeft, colourA, new(0, 0), rectProps));
-        writer.Write(new RectVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colourC, new(1, 0), rectProps));
+        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colour, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colour, new(1, 0), rectProps));
         vertCount += 6;
         vertPos = writer.Offset;
     }
 
-    public void DrawRect(Bounds2D bounds, Vector4 colour, float rounding)
+    public void DrawGradient(Bounds2D bounds, Vector4 colourA, Vector4 colourB, Vector4 colourC, Vector4 colourD, float rounding)
     {
-        if (activeShader != rectShader || CheckSpace<RectVert>(6))
-            FlushBatch();
-
-        if (activeShader != rectShader)
+        ShaderFeature shaderFeatures = ShaderFeature.Rounding | ShaderFeature.Alpha;
+        if (!shaderManager.IsShaderActive(shaderFeatures))
         {
-            activeShader = rectShader;
-            activeVao = rectVAO;
-            activeTexture = null;
+            FlushBatch();
+            shaderManager.SetActiveShader(gl, shaderFeatures);
         }
 
-        Vector3 rectProps = new(bounds.Width, bounds.Height, rounding);
+        if (CheckSpace<RectRoundVert>(6))
+            FlushBatch();
+
+        Vector4 rectProps = new(bounds.Size, rounding, 0);
 
         var writer = vertBuff.GetBinaryWriter(vertPos);
-        writer.Write(new RectVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colour, new(0, 1), rectProps));
-        writer.Write(new RectVert(bounds.topLeft, colour, new(0, 0), rectProps));
-        writer.Write(new RectVert(bounds.bottomRight, colour, new(1, 1), rectProps));
-        writer.Write(new RectVert(bounds.bottomRight, colour, new(1, 1), rectProps));
-        writer.Write(new RectVert(bounds.topLeft, colour, new(0, 0), rectProps));
-        writer.Write(new RectVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colour, new(1, 0), rectProps));
+        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colourB, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colourA, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colourD, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colourD, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colourA, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colourC, new(1, 0), rectProps));
         vertCount += 6;
         vertPos = writer.Offset;
     }
 
     public void DrawShadow(Bounds2D bounds, Vector4 colour, float rounding, float blur)
     {
-        throw new NotImplementedException();
+        ShaderFeature shaderFeatures = ShaderFeature.Rounding | ShaderFeature.Blur | ShaderFeature.Alpha;
+        if (!shaderManager.IsShaderActive(shaderFeatures))
+        {
+            FlushBatch();
+            shaderManager.SetActiveShader(gl, shaderFeatures);
+        }
+
+        if (CheckSpace<RectRoundVert>(6))
+            FlushBatch();
+
+        Vector4 rectProps = new(bounds.Size, rounding, blur);
+
+        var writer = vertBuff.GetBinaryWriter(vertPos);
+        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colour, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colour, new(1, 0), rectProps));
+        vertCount += 6;
+        vertPos = writer.Offset;
     }
 
+    public void DrawOutlineRect(Bounds2D bounds, Vector4 colour, float outlineThickness, float rounding)
+    {
+        ShaderFeature shaderFeatures = ShaderFeature.Outline | ShaderFeature.Rounding | ShaderFeature.Alpha;
+        if (!shaderManager.IsShaderActive(shaderFeatures))
+        {
+            FlushBatch();
+            shaderManager.SetActiveShader(gl, shaderFeatures);
+        }
+
+        if (CheckSpace<RectRoundVert>(6))
+            FlushBatch();
+
+        Vector4 rectProps = new(bounds.Size, rounding, outlineThickness);
+
+        var writer = vertBuff.GetBinaryWriter(vertPos);
+        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colour, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colour, new(1, 0), rectProps));
+        vertCount += 6;
+        vertPos = writer.Offset;
+    }
+
+    public void DrawOutlineGradient(Bounds2D bounds, Vector4 colourA, Vector4 colourB, Vector4 colourC, Vector4 colourD, float outlineThickness, float rounding)
+    {
+        ShaderFeature shaderFeatures = ShaderFeature.Outline | ShaderFeature.Rounding | ShaderFeature.Alpha;
+        if (!shaderManager.IsShaderActive(shaderFeatures))
+        {
+            FlushBatch();
+            shaderManager.SetActiveShader(gl, shaderFeatures);
+        }
+
+        if (CheckSpace<RectRoundVert>(6))
+            FlushBatch();
+
+        Vector4 rectProps = new(bounds.Size, rounding, 0);
+
+        var writer = vertBuff.GetBinaryWriter(vertPos);
+        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colourB, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colourA, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colourD, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colourD, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colourA, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colourC, new(1, 0), rectProps));
+        vertCount += 6;
+        vertPos = writer.Offset;
+    }
+
+    public void DrawTexture(Bounds2D bounds, ITextureHandle texture, float rounding)
+    {
+        if (texture is not Texture2D tex)
+            throw new NotSupportedException("Attempted to call DrawTexture with an incompatible texture object!");
+
+        ShaderFeature shaderFeatures = ShaderFeature.Rounding | ShaderFeature.Alpha | ShaderFeature.Texture;
+        if (!shaderManager.IsShaderActive(shaderFeatures))
+        {
+            FlushBatch();
+            shaderManager.SetActiveShader(gl, shaderFeatures);
+        }
+
+        if (CheckSpace<RectRoundVert>(6))
+            FlushBatch();
+
+        if (activeTexture != tex)
+        {
+            FlushBatch();
+            activeTexture = tex;
+        }
+
+        Vector4 rectProps = new(bounds.Size, rounding, 0);
+        var colour = Vector4.One;
+
+        var writer = vertBuff.GetBinaryWriter(vertPos);
+        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colour, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
+        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colour, new(1, 0), rectProps));
+        vertCount += 6;
+        vertPos = writer.Offset;
+    }
+    #endregion
+
+    #region Text
     public void DrawChar(Bounds2D bounds, float size, char c, BMFont font, Vector4 colour)
     {
         float fontSize = size / font.Size;
@@ -254,7 +320,7 @@ internal class OpenGLDrawContext : IDrawContext
         }
     }
 
-    public void DrawText(Bounds2D bounds, float size, string s, BMFont font, Vector4 colour, 
+    public void DrawText(Bounds2D bounds, ReadOnlySpan<char> s, BMFont font, float size, Vector4 colour,
         float wordSpacing = 0, float charSpacing = 0, float skew = 0, float weight = 0.5F, float width = 1)
     {
         var tex = font.FontTexture?.TextureHandle;
@@ -290,16 +356,15 @@ internal class OpenGLDrawContext : IDrawContext
         if (tex.Width == 0 || tex.Height == 0)
             return 0f;
 
-        if (activeShader != textShader || CheckSpace<CharVert>(6))
-            FlushBatch();
-
-        if (activeShader != textShader)
+        ShaderFeature shaderFeatures = ShaderFeature.Text | ShaderFeature.Alpha;
+        if (!shaderManager.IsShaderActive(shaderFeatures))
         {
-            activeShader = textShader;
-            textShader?.Use();
-            textShader?.SetUniform("uFontTex", 0);
-            activeVao = textVAO;
+            FlushBatch();
+            shaderManager.SetActiveShader(gl, shaderFeatures);
         }
+
+        if (CheckSpace<CharVert>(6))
+            FlushBatch();
 
         if (activeTexture != tex)
         {
@@ -307,7 +372,6 @@ internal class OpenGLDrawContext : IDrawContext
             activeTexture = tex;
         }
 
-        float size_x = size * width;
         Vector2 fontSizeVec = new(size * width, size);
         Vector2 tl = c.offset * fontSizeVec;
         Vector2 br = (c.offset + c.size) * fontSizeVec;
@@ -329,58 +393,66 @@ internal class OpenGLDrawContext : IDrawContext
 
         return c.xAdvance * fontSizeVec.X;
     }
+    #endregion
 
-    public void DrawTexture(Bounds2D bounds, ITextureHandle texture, float rounding)
+    #region Lines & Polys
+    public void DrawLine(Vector2 start, Vector2 end, Vector4 colourStart, Vector4 colourEnd, float thickness)
     {
-        if (texture is not Texture2D tex)
-            throw new NotSupportedException("Attempted to call DrawTexture with an incompatible texture object!");
-
-        if (activeShader != textShader || CheckSpace<CharVert>(6))
-            FlushBatch();
-
-        if (activeShader != textureShader)
-        {
-            activeShader = textureShader;
-            textureShader?.Use();
-            textureShader?.SetUniform("uMainTex", 0);
-            activeVao = rectVAO;
-        }
-
-        if (activeTexture != tex)
+        ShaderFeature shaderFeatures = ShaderFeature.Alpha;
+        if (!shaderManager.IsShaderActive(shaderFeatures))
         {
             FlushBatch();
-            activeTexture = tex;
+            shaderManager.SetActiveShader(gl, shaderFeatures);
         }
 
-        Vector3 rectProps = new(bounds.Width, bounds.Height, rounding);
-        var colour = Vector4.One;
+        if (CheckSpace<RectVert>(6))
+            FlushBatch();
+
+        Vector2 dir = end - start;
+        dir = Vector2.Normalize(dir);
+        Vector2 perp = new Vector2(-dir.Y, dir.X) * thickness;
+        Vector2 a_0 = start + perp;
+        Vector2 a_1 = start - perp;
+        Vector2 b_0 = end + perp;
+        Vector2 b_1 = end - perp;
 
         var writer = vertBuff.GetBinaryWriter(vertPos);
-        writer.Write(new RectVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colour, new(0, 1), rectProps));
-        writer.Write(new RectVert(bounds.topLeft, colour, new(0, 0), rectProps));
-        writer.Write(new RectVert(bounds.bottomRight, colour, new(1, 1), rectProps));
-        writer.Write(new RectVert(bounds.bottomRight, colour, new(1, 1), rectProps));
-        writer.Write(new RectVert(bounds.topLeft, colour, new(0, 0), rectProps));
-        writer.Write(new RectVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colour, new(1, 0), rectProps));
+        writer.Write(new RectVert(a_0, colourStart, new(0, 1)));
+        writer.Write(new RectVert(a_1, colourStart, new(0, 0)));
+        writer.Write(new RectVert(b_0, colourEnd, new(1, 1)));
+        writer.Write(new RectVert(b_0, colourEnd, new(1, 1)));
+        writer.Write(new RectVert(a_1, colourStart, new(0, 0)));
+        writer.Write(new RectVert(b_1, colourEnd, new(1, 0)));
         vertCount += 6;
         vertPos = writer.Offset;
     }
+
+    public void DrawPolyFill(IEnumerable<IDrawContext.PolyVert> points)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void DrawPolyLine(IEnumerable<IDrawContext.PolyVert> points, float thickness)
+    {
+        throw new NotImplementedException();
+    }
+    #endregion
 
     public void FlushBatch()
     {
         if (vertPos == 0)
             return;
 
-        if (activeShader != null)
+        if (shaderManager.ActiveShader != null)
         {
-            activeShader.Use();
+            //shaderManager.ActiveShader.Use();
 
-            activeShader.SetUniform("uResolution", resolution);
+            shaderManager.ActiveShader.SetUniform("uResolution", resolution);
             // Set all other program properties...
             // Bind textures and stuff
             activeTexture?.Bind(0);
 
-            var vao = activeVao!;
+            var vao = shaderManager.ActiveVAO!;
 
             vao.VBO.Update(vertBuff.AsSpan(0, vertPos >> 2));
 
@@ -401,25 +473,5 @@ internal class OpenGLDrawContext : IDrawContext
     public ITextureHandle LoadTexture(TextureData data, string? name = null, TextureCompression compression = TextureCompression.Unknown)
     {
         return Texture2DLoader.LoadTexture(gl, name, data, compression);
-    }
-
-    [StructLayout(LayoutKind.Explicit)]
-    readonly struct RectVert(Vector2 pos, Vector4 col, Vector2 texcoord, Vector3 rounding)
-    {
-        [FieldOffset(0)] public readonly Vector2 pos = pos;
-        [FieldOffset(0x8)] public readonly Vector4 col = col;
-        [FieldOffset(0x18)] public readonly Vector2 texcoord = texcoord;
-        [FieldOffset(0x20)] public readonly Vector3 rounding = rounding;
-    }
-
-    [StructLayout(LayoutKind.Explicit)]
-    readonly struct CharVert(Vector2 pos, Vector4 col, Vector3 charData)
-    {
-        [FieldOffset(0)] public readonly Vector2 pos = pos;
-        [FieldOffset(0x8)] public readonly Vector4 col = col;
-        /// <summary>
-        /// The uv coordinates into the font texture are stored in xy, and z stores the font weight.
-        /// </summary>
-        [FieldOffset(0x18)] public readonly Vector3 charData = charData;
     }
 }

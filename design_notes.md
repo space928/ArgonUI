@@ -243,6 +243,42 @@ For each element draw the sublist index it goes into is determined by:
 sense to clamp to one above and one below the current min and max index and then re-order when 
 needed. Or I guess we could use a heap.
 
+### Drawing Lists V3
+
+The batching allowed by V2 is decent, but has some limitations. Notably, we expect many UI elements
+to be composed of multiple different draw commands (eg: a rect and it's outline). Currently, this
+would break the batching. We need a way of exposing the hierarchical draw lists to components 
+which may be able to take advantage of them. Ideally, we would hide this details from implementors
+of custom `Draw()` functions by wrapping `IDrawContext` to automatically do this sorting.
+
+https://skia.googlesource.com/skia/+/refs/heads/main/src/gpu/graphite/DrawList.h#29
+
+Conceptually, each method in `IDrawContext` should translate to a draw command of a given type,
+notably, we mostly care about the different `ShaderFeature` flags involved.
+
+```
+	Top
+	1	| Rect   |
+	2	| Rect                 |  | Text | | Text | | Text |
+	3	                          | Rect | | Rect | | Rect |
+	4							  | Rect          |
+	5	| Clear                                            |
+
+Squashses down into:
+
+	Top
+	1	                          | Text | | Text | | Text |
+	2	| Rect                 |  | Rect | | Rect | 
+	3	| Rect                 |  | Rect          | | Rect |
+	4	| Clear                                            |
+```
+
+Note that the gaps in 3 & 4 can only appear due to a `UIContainer` not pushing any draw commands.
+As such collapsing the space above should be trivial, that being said you generally only want to 
+collapse down as far as you can while still leaving command types grouped -> see how Text in 
+layer 2 doesn't move down as it would no longer be in a group. Additionally, drawing system should 
+split layers such that only one draw type exists in each.
+
 
 # Input
 
@@ -317,7 +353,7 @@ public partial class Rectangle : UIElement
 	/// <summary>
     /// The colour of this rectangle.
     /// </summary>
-	[Reactive][Dirty(DirtyFlags.Content)]
+	[Reactive][Dirty(DirtyFlag.Content)]
 	[Stylable(DocString: "This element's colour.")]
 	private Vector4 Colour;
 }
@@ -333,7 +369,7 @@ public partial class Rectangle : UIElement
         get => colour; set
         {
             UpdateProperty(ref colour, value);
-            Dirty(DirtyFlags.Content);
+            Dirty(DirtyFlag.Content);
         }
     }
 }

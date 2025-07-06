@@ -7,7 +7,8 @@
           "files": [
             //"**/ArgonUI.csproj"
             "**/bin/**/ArgonUI*.dll"
-          ]
+          ],
+          "exclude": "*_Styles.g.cs",
         }
       ],
       "dest": "api",

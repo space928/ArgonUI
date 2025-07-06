@@ -31,6 +31,7 @@ public class Texture2D : ITextureHandle, IDisposable
     protected uint height;
 
     private static uint currentTexture = 0;
+    private static uint currentUnit = uint.MaxValue;
     private static Texture2D? missingTexture;
 
     public Texture2D(GL gl, string? name = null)
@@ -117,9 +118,13 @@ public class Texture2D : ITextureHandle, IDisposable
             return;
         }
 
-        gl.ActiveTexture((TextureUnit)((int)TextureUnit.Texture0 + unit));
-        gl.BindTexture(TextureTarget.Texture2D, handle);
-        currentTexture = handle;
+        if (currentTexture != handle || currentUnit != unit)
+        {
+            gl.ActiveTexture((TextureUnit)((int)TextureUnit.Texture0 + unit));
+            gl.BindTexture(TextureTarget.Texture2D, handle);
+            currentTexture = handle;
+            currentUnit = unit;
+        }
     }
 
     internal void BindInvalid()

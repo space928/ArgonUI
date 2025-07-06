@@ -7,7 +7,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ArgonUI.UIElements;
+namespace ArgonUI.UIElements.Abstract;
 
 /// <summary>
 /// Abstract class for a UIElement which contains a single child element.

@@ -17,7 +17,7 @@
     <Compile Include="..\ArgonUI\SourceGenerator\ReactiveAttribute.cs" Link="ReactiveAttribute.cs" />
     <Compile Include="..\ArgonUI\SourceGenerator\StylableAttribute.cs" Link="StylableAttribute.cs" />
     <Compile Include="..\ArgonUI\SourceGenerator\UIClonableAttribute.cs" Link="UIClonableAttribute.cs" />
-    <Compile Include="..\ArgonUI\UIElements\DirtyFlags.cs" Link="DirtyFlags.cs" />
+    <Compile Include="..\ArgonUI\UIElements\Abstract\DirtyFlag.cs" Link="DirtyFlag.cs" />
   </ItemGroup>
 
   <ItemGroup>

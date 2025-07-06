@@ -1,5 +1,5 @@
 ﻿using ArgonUI.Styling;
-using ArgonUI.UIElements;
+using ArgonUI.UIElements.Abstract;
 using System.Numerics;
 
 namespace ArgonUI.SourceGenerator.Test;
@@ -15,14 +15,14 @@ internal class Program
 [UIClonable]
 public partial class ReactiveTest : UIElement
 {
-    [Reactive("SpecialExample")] private int exampleValue;
+    [Reactive("SpecialExample"), Stylable] private uint exampleValue;
     [Reactive(propName: "SpecialExample1")] private int exampleValue1;
-    [Reactive, Dirty(DirtyFlags.ChildContent)] private UIElement? test2;
-    [Reactive, Dirty(DirtyFlags.Layout), CustomGet(nameof(GetTest3))] private float test3;
+    [Reactive, Dirty(DirtyFlag.ChildContent)] private UIElement? test2;
+    [Reactive, Dirty(DirtyFlag.Layout), CustomGet(nameof(GetTest3))] private float test3;
     /// <summary>
     /// An example property.
     /// </summary>
-    [Reactive, Dirty(DirtyFlags.Layout), CustomSet(nameof(SetTest4)), Stylable] private float test4;
+    [Reactive, Dirty(DirtyFlag.Layout), CustomSet(nameof(SetTest4)), Stylable] private float test4;
     /// <summary>
     /// A vector example.
     /// </summary>
@@ -68,7 +68,7 @@ internal static partial class Test_Styles
 
 public abstract class UIElement : ReactiveObject
 {
-    private DirtyFlags dirtyFlag;
+    private DirtyFlag dirtyFlag;
 
     public UIElement? Parent { get; set; }
 
@@ -76,16 +76,16 @@ public abstract class UIElement : ReactiveObject
     /// Marks this element as dirty, forcing the UI engine to redraw this element and it's children when it's next dispatched.
     /// </summary>
     /// <param name="flags">Which <see cref="ArgonUI.UIElements.DirtyFlags"/> to set.</param>
-    public virtual void Dirty(DirtyFlags flags)
+    public virtual void Dirty(DirtyFlag flags)
     {
-        UpdateProperty(ref dirtyFlag, dirtyFlag | flags, nameof(DirtyFlags));
+        UpdateProperty(ref dirtyFlag, dirtyFlag | flags, nameof(DirtyFlag));
 
         // Propagate dirty flags up
-        if ((flags & DirtyFlags.Layout) != 0)
-            Parent?.Dirty(DirtyFlags.ChildLayout);
+        if ((flags & DirtyFlag.Layout) != 0)
+            Parent?.Dirty(DirtyFlag.ChildLayout);
 
-        if ((flags & DirtyFlags.Content) != 0)
-            Parent?.Dirty(DirtyFlags.ChildContent);
+        if ((flags & DirtyFlag.Content) != 0)
+            Parent?.Dirty(DirtyFlag.ChildContent);
     }
 
     public virtual UIElement Clone() => throw new NotImplementedException();

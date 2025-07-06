@@ -7,7 +7,7 @@
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<Title>ArgonUI</Title>
-		<Version>0.4.1-pre</Version>
+		<Version>0.5.1-pre</Version>
 		<Authors>Thomas Mathieson</Authors>
 		<Copyright>Copyright © Thomas Mathieson 2025</Copyright>
 		<PackageProjectUrl>https://github.com/space928/ArgonUI</PackageProjectUrl>

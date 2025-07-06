@@ -88,6 +88,7 @@ public partial class MergeStylesGenerator
                 {
                     // Iterate through each of the classes annotated with [GeneratedStyles] in the chosen assemblies
                     var styleClassName = reactiveObject.ClassName;
+                    var styleClassNamespace = reactiveObject.Namespace;
                     enableNullable |= reactiveObject.EnableNullable;
 
                     // Check for the GeneratedStylesAttribute
@@ -125,12 +126,12 @@ public partial class MergeStylesGenerator
 
                         if (styledProps.TryGetValue(member.PropName, out var mergedStylablePropTemp))
                         {
-                            mergedStylablePropTemp.StyledTypes.Add(styleClassName);
+                            mergedStylablePropTemp.StyledTypes.Add(new(styleClassName, styleClassNamespace));
                         }
                         else
                         {
                             //var docComment = factorySymbol.GetDocumentationCommentXml();
-                            styledProps.Add(member.PropName, new(member.PropName, member.FieldType, member.DocComment, [styleClassName]));
+                            styledProps.Add(member.PropName, new(member.PropName, member.FieldType, member.DocComment, [new(styleClassName, styleClassNamespace)]));
                         }
                     }
                 }
@@ -170,6 +171,7 @@ public partial class MergeStylesGenerator
 
     public record MergeStylesResult(MergeStylesClass? Class, Diagnostic? Diagnostic);
     public record MergeStylesClass(Accessibility Accessibility, string Namespace, string[] Assemblies, string ClassName, bool EnableNullable, EquatableArray<MergedStylableProp> ReactiveFields);
-    public record MergedStylableProp(string Name, string Type, string? DocComment, EquatableArray<string> StyledTypes);
-    public record MergedStylablePropTemp(string Name, string Type, string? DocComment, List<string> StyledTypes);
+    public record MergedStylableProp(string Name, string Type, string? DocComment, EquatableArray<MergedStylablePropType> StyledTypes);
+    public record MergedStylablePropTemp(string Name, string Type, string? DocComment, List<MergedStylablePropType> StyledTypes);
+    public record MergedStylablePropType(string Type, string Namespace);
 }

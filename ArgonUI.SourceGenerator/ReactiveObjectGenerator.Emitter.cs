@@ -70,9 +70,9 @@ public partial class ReactiveObjectGenerator
                                 prefix = "this.";
                             sb.AppendLine($"UpdateProperty(ref {prefix}{prop.FieldName}, value);");
                         }
-                        if (prop.DirtyFlags != UIElements.DirtyFlags.None)
+                        if (prop.DirtyFlags != UIElements.Abstract.DirtyFlag.None)
                         {
-                            sb.AppendLine($"Dirty(ArgonUI.UIElements.DirtyFlags.{prop.DirtyFlags});");
+                            sb.AppendLine($"Dirty(ArgonUI.UIElements.Abstract.DirtyFlag.{prop.DirtyFlags});");
                         }
                     }
                 }
@@ -132,6 +132,9 @@ public partial class ReactiveObjectGenerator
         {
             foreach (var prop in model.ReactiveFields)
             {
+                if (prop.Stylable == null)
+                    continue;
+
                 // Generate a factory method
                 if (!string.IsNullOrEmpty(prop.DocComment))
                     Helpers.PrintDocComment(sb, prop.DocComment!);

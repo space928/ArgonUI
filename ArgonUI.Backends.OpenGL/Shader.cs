@@ -18,7 +18,7 @@ public partial class Shader : IDisposable
 
     private readonly StringDict<int> uniformLocationCache = [];//Dictionary<string, int> uniformLocationCache = [];
 
-    public Shader(GL gl, string vertexPath, string fragmentPath, string[]? defines = null)
+    public Shader(GL gl, string vertexPath, string fragmentPath, ICollection<string>? defines = null)
     {
         this.gl = gl;
 
@@ -112,7 +112,7 @@ public partial class Shader : IDisposable
         gl.DeleteProgram(handle);
     }
 
-    private uint LoadShader(ShaderType type, string path, string[]? defines)
+    private uint LoadShader(ShaderType type, string path, ICollection<string>? defines)
     {
         string src;
         try
@@ -146,9 +146,9 @@ public partial class Shader : IDisposable
     /// <param name="source"></param>
     /// <param name="defines"></param>
     /// <returns></returns>
-    private static string ApplyDefines(string source, string[]? defines)
+    private static string ApplyDefines(string source, ICollection<string>? defines)
     {
-        if (defines == null || defines.Length == 0)
+        if (defines == null || defines.Count == 0)
             return source;
 
         StringBuilder sb = new(source.Length);

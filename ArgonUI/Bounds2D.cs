@@ -174,8 +174,8 @@ public struct Bounds2D : IEquatable<Bounds2D>
     /// <returns>A new bounds which has been shrunk.</returns>
     public readonly Bounds2D SubtractMargin(Thickness margin)
     {
-        var sub = new Vector4(-margin.left, -margin.top, margin.right, margin.bottom);
-        var res = _value - sub;
+        var add = new Vector4(margin.leftTop, -margin.right, -margin.bottom);
+        var res = _value + add;
         var ret = new Bounds2D(res);
         if (!ret.IsValid)
             ret.topLeft = ret.bottomRight = ret.Centre;
@@ -189,12 +189,60 @@ public struct Bounds2D : IEquatable<Bounds2D>
     /// <returns>A new bounds which has been grown.</returns>
     public readonly Bounds2D AddMargin(Thickness margin)
     {
-        var sub = new Vector4(margin.left, margin.top, -margin.right, -margin.bottom);
-        var res = _value - sub;
+        var add = new Vector4(-margin.leftTop, margin.right, margin.bottom);
+        var res = _value + add;
         var ret = new Bounds2D(res);
         if (!ret.IsValid)
             ret.topLeft = ret.bottomRight = ret.Centre;
         return ret;
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="Bounds2D"/> with the same top-left coordinate as <see langword="this"/> 
+    /// bounds, but with the given <paramref name="size"/>.
+    /// </summary>
+    /// <param name="size">The final <see cref="Size"/> of the new bounds.</param>
+    /// <returns>A new bounds with the given size.</returns>
+    public readonly Bounds2D WithSize(Vector2 size)
+    {
+        var tl = topLeft;
+        var br = size + tl;
+        return new(tl, br);
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="Bounds2D"/> with the same top-left coordinate as <see langword="this"/> 
+    /// bounds, but with the given <paramref name="size"/>. For any dimension of 
+    /// <paramref name="size"/> less than or equal to zero, this bounds' original size is returned.
+    /// </summary>
+    /// <param name="size">The final <see cref="Size"/> of the new bounds.</param>
+    /// <returns>A new bounds with the given size.</returns>
+    public readonly Bounds2D WithSizeNonZero(Vector2 size)
+    {
+        var tl = topLeft;
+        var br = size + tl;
+        if (size.X <= 0)
+            br.X = bottomRight.X;
+        if (size.Y <= 0)
+            br.Y = bottomRight.Y;
+        return new(tl, br);
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="Bounds2D"/> with the same <see cref="Centre"/> coordinate as 
+    /// <see langword="this"/> bounds, but with the given <paramref name="size"/>.
+    /// </summary>
+    /// <param name="size">The final <see cref="Size"/> of the new bounds.</param>
+    /// <returns>A new bounds with the given size.</returns>
+    public readonly Bounds2D WithSizeCentred(Vector2 size)
+    {
+        var centre = bottomRight + topLeft;
+
+        var sizeV4 = new Vector4(-size, size.X, size.Y);
+        var res = new Vector4(centre, centre.X, centre.Y) + sizeV4;
+        res *= 0.5f;
+
+        return new(res);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

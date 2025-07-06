@@ -126,7 +126,7 @@ public partial class UIClonableGenerator
                     classSymbol.ContainingNamespace.ToString(),
                     classSymbol.ContainingAssembly.Name,
                     classSymbol.Name,
-                    true, callCustomCloner,
+                    classSymbol.IsAbstract, true, callCustomCloner,
                     fields.DrainToImmutable().AsEquatable());
 
                 yield return new UIClonableResult(clonableClass, null);
@@ -136,6 +136,6 @@ public partial class UIClonableGenerator
 
     private record UIClonableResult(UIClonableClass? ClonableClass, Diagnostic? Diagnostic);
     private record UIClonableClass(Accessibility Accessibility, string Namespace, string Assembly, string ClassName,
-        bool EnableNullable, bool EnableCustomClone, EquatableArray<UIClonableField> ClonableFields);
+        bool IsAbstract, bool EnableNullable, bool EnableCustomClone, EquatableArray<UIClonableField> ClonableFields);
     private record UIClonableField(string FieldName, bool HasCloneMethod);
 }

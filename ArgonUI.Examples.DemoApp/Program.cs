@@ -16,23 +16,24 @@ public class Program
 
         wnd.RootElement.Style = new([
             new Style([
-                ArgonUIStyles.Rounding(10),
+                ArgonUIStyles.Rounding(5),
                 //ArgonUIStyles.FontSize(30),
+                ArgonUIStyles.TextColour(Vector4.One)
             ])
         ]);
 
         StyleSet buttonStyle = new([
             new Style([
-                ArgonUIStyles.Rounding(10),
-                ArgonUIStyles.Colour(new(0, 1.0f, 0.1f, 1)),
+                ArgonUIStyles.Rounding(5),
+                ArgonUIStyles.Colour(new(0.35f, 0.35f, 0.35f, 1)),
             ]),
             new Style(new HoveredSelector(), [
-                ArgonUIStyles.Rounding(5),
-                ArgonUIStyles.Colour(new(1, .1f, 0, 1)),
+                ArgonUIStyles.Rounding(10),
+                ArgonUIStyles.Colour(new(0.45f, 0.45f, 0.45f, 1)),
             ])
         ]);
 
-        wnd.RootElement.BGColour = new(0, 0.5f, 1, 1);
+        wnd.RootElement.BGColour = new(0.2f, 0.23f, 0.25f, 1);
 
         var stackPanel = new StackPanel();
         stackPanel.InnerPadding = new(2);
@@ -53,23 +54,25 @@ public class Program
 
         int counter = 0;
 
-        btn.OnMouseDown += (im, button) =>
+        btn.OnMouseDown += args =>
         {
 #if DEBUG_LATENCY
             ((OpenGLWindow)wnd).LogLatency(DateTime.UtcNow.Ticks, "rect OnMouseDown");
             rect.logLatencyNow = true;
             rect.Colour = (counter & 1) == 0 ? new(1, 0, 0, 1) : new(0, 0, 1, 1);
 #endif
-            //rect.Dirty(DirtyFlags.Content);
+            //rect.Dirty(DirtyFlag.Content);
             //Console.WriteLine("Rectangle clicked!");
             label.Text = $"Hello World! {counter++}";
-            btn.Colour = new(0.7f, 0.05f, 0, 1);
+            btn.Colour = new(0.30f, 0.30f, 0.30f, 1);
+            args.Handled = true;
         };
-        btn.OnMouseUp += (im, button) =>
+        btn.OnMouseUp += args =>
         {
             btn.Colour = ((StylableProp<Vector4>)buttonStyle[1]["Colour"]).Value;
+            args.Handled = true;
         };
-        btn.OnMouseEnter += (im, pos) =>
+        btn.OnMouseEnter += args =>
         {
 #if DEBUG_LATENCY
             ((OpenGLWindow)wnd).LogLatency(DateTime.UtcNow.Ticks, "rect OnMouseEnter");
@@ -87,16 +90,18 @@ public class Program
                 Button newButton = new();
                 newButton.Width = 20;
                 newButton.Height = 20;
+                newButton.HorizontalAlignment = Alignment.Centre;
+                newButton.VerticalAlignment = Alignment.Centre;
                 ((Label)newButton.Content!).FontSize = 8;
                 newButton.Style = buttonStyle;
                 newStackPanel.AddChild(newButton);
 
-                newButton.OnMouseEnter += (im, pos) =>
+                newButton.OnMouseEnter += args =>
                 {
                     newButton.Width = 24;
                     newButton.Height = 24;
                 };
-                newButton.OnMouseLeave += (im, pos) =>
+                newButton.OnMouseLeave += args =>
                 {
                     newButton.Width = 20;
                     newButton.Height = 20;
