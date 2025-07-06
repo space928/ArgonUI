@@ -1,0 +1,51 @@
+// Includes all the freetype headers
+#include "ft2build.h"
+
+#include FT_CONFIG_CONFIG_H
+#include FT_FREETYPE_H
+//#include FT_CONFIG_MODULES_H
+#include FT_ERRORS_H
+#include FT_MODULE_ERRORS_H
+//#include FT_SYSTEM_H
+#include FT_IMAGE_H
+#include FT_TYPES_H
+//#include FT_LIST_H
+#include FT_OUTLINE_H
+#include FT_SIZES_H
+#include FT_MODULE_H
+#include FT_RENDER_H
+#include FT_DRIVER_H
+#include FT_TYPE1_TABLES_H
+#include FT_TRUETYPE_IDS_H
+#include FT_TRUETYPE_TABLES_H
+#include FT_TRUETYPE_TAGS_H
+#include FT_BDF_H
+#include FT_CID_H
+#include FT_GZIP_H
+#include FT_LZW_H
+#include FT_BZIP2_H
+#include FT_WINFONTS_H
+#include FT_GLYPH_H
+#include FT_BITMAP_H
+#include FT_BBOX_H
+#include FT_CACHE_H
+//#include FT_MAC_H
+#include FT_MULTIPLE_MASTERS_H
+#include FT_SFNT_NAMES_H
+#include FT_OPENTYPE_VALIDATE_H
+#include FT_GX_VALIDATE_H
+#include FT_PFR_H
+#include FT_STROKER_H
+#include FT_SYNTHESIS_H
+#include FT_FONT_FORMATS_H
+#include FT_TRIGONOMETRY_H
+#include FT_LCD_FILTER_H
+#include FT_INCREMENTAL_H
+#include FT_GASP_H
+#include FT_ADVANCES_H
+#include FT_COLOR_H
+#include FT_OTSVG_H
+
+
+//#include "freetype/config/public-macros.h"
+//#include "freetype/ftimage.h"

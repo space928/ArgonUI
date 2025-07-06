@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ArgonUI.FreeType.Test": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

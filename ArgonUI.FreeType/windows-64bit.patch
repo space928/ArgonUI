@@ -1,0 +1,28 @@
+--- a/include/freetype/fttypes.h
++++ b/include/freetype/fttypes.h
+@@ -242,7 +242,11 @@ FT_BEGIN_HEADER
+    * @description:
+    *   A typedef for signed long.
+    */
+-  typedef signed long  FT_Long;
++#ifdef _WIN64
++  typedef signed long long FT_Long;
++#else
++  typedef signed long FT_Long;
++#endif
+
+
+   /**************************************************************************
+@@ -253,7 +257,11 @@ FT_BEGIN_HEADER
+    * @description:
+    *   A typedef for unsigned long.
+    */
+-  typedef unsigned long  FT_ULong;
++#ifdef _WIN64
++  typedef unsigned long long FT_ULong;
++#else
++  typedef unsigned long FT_ULong;
++#endif
+
+
+   /**************************************************************************

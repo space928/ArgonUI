@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+	<LangVersion>12.0</LangVersion>
+	<ImplicitUsings>disable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<Title>ArgonUI.Freetype</Title>
+	<Version>0.1.1-pre</Version>
+	<Authors>Thomas Mathieson</Authors>
+	<Copyright>Copyright © Thomas Mathieson 2025</Copyright>
+	<PackageProjectUrl>https://github.com/space928/ArgonUI</PackageProjectUrl>
+	<RepositoryUrl>https://github.com/space928/ArgonUI.git</RepositoryUrl>
+	<RepositoryType>git</RepositoryType>
+	<PackageTags>ui;freetype;font</PackageTags>
+	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+	<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+	<IncludeSymbols>True</IncludeSymbols>
+	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	<DocumentationFile></DocumentationFile>
+	<GenerateDocumentationFile>True</GenerateDocumentationFile>
+	<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+	<PropertyGroup>
+		<NoWarn>1701;1702;1591</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="System.Memory" Version="4.5.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="lib\linux-x64\libfreetype6.so">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="lib\win-x64\freetype6.dll">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Update="lib\win-x86\freetype6.dll">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+
+</Project>
