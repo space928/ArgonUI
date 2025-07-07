@@ -19,7 +19,7 @@ public class HeadlessDrawContext : IDrawContext
         
     }
 
-    public void DrawChar(Bounds2D bounds, float size, char c, BMFont font, Vector4 colour)
+    public void DrawChar(Bounds2D bounds, float size, char c, Font font, Vector4 colour)
     {
         
     }
@@ -64,7 +64,7 @@ public class HeadlessDrawContext : IDrawContext
         
     }
 
-    public void DrawText(Bounds2D bounds, ReadOnlySpan<char> s, BMFont font, float size, Vector4 colour, float wordSpacing = 0, float charSpacing = 0, float skew = 0, float weight = 0.5F, float width = 1)
+    public void DrawText(Bounds2D bounds, ReadOnlySpan<char> s, Font font, float size, Vector4 colour, float wordSpacing = 0, float charSpacing = 0, float skew = 0, float weight = 0.5F, float width = 1)
     {
         
     }

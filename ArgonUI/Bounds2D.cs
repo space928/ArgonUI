@@ -17,6 +17,17 @@ public struct Bounds2D : IEquatable<Bounds2D>
     [FieldOffset(0x8)] public Vector2 bottomRight;
 
     public static Bounds2D Zero => new(Vector4.Zero);
+    
+    public readonly Vector2 TopRight
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(bottomRight.X, topLeft.Y);
+    }
+    public readonly Vector2 BottomLeft
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(topLeft.X, bottomRight.Y);
+    }
 
     public Bounds2D() 
     {
@@ -254,4 +265,49 @@ public struct Bounds2D : IEquatable<Bounds2D>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Bounds2D left, Bounds2D right) => left._value != right._value;
     public readonly override int GetHashCode() => _value.GetHashCode();
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bounds2D operator*(Bounds2D bounds, Vector2 scale)
+    {
+        //bounds.topLeft *= scale;
+        //bounds.bottomRight *= scale;
+        //return bounds;
+
+        Vector4 scale4 = new(scale, scale.X, scale.Y);
+        return new(bounds._value * scale4);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bounds2D operator +(Bounds2D bounds, Vector2 offset)
+    {
+        Vector4 offset4 = new(offset, offset.X, offset.Y);
+        return new(bounds._value + offset4);
+    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bounds2D operator -(Bounds2D bounds, Vector2 offset)
+    {
+        Vector4 offset4 = new(offset, offset.X, offset.Y);
+        return new(bounds._value - offset4);
+    }
+
+    /// <summary>
+    /// Constructs a new <see cref="Bounds2D"/> from a centre point and a total size.
+    /// </summary>
+    /// <param name="centre">The coordinates of the centre of the new bounds.</param>
+    /// <param name="scale">The width and height of the new bounds.</param>
+    /// <returns></returns>
+    public static Bounds2D FromCentreScale(Vector2 centre, Vector2 scale)
+    {
+        var halfScale = scale * 0.5f;
+        Vector2 tl = centre - halfScale;
+        Vector2 br = centre + halfScale;
+        return new(tl, br);
+    }
+
+    /// <summary>
+    /// Constructs a new <see cref="Bounds2D"/> from a top-left and a bottom-right corner position.
+    /// </summary>
+    /// <param name="topLeft">The coordinates of the top-left point within the new bounds.</param>
+    /// <param name="bottomRight">The coordinates of the bottom-right point within the new bounds.</param>
+    /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Bounds2D FromCorners(Vector2 topLeft, Vector2 bottomRight) => new(topLeft, bottomRight);
 }

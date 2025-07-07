@@ -32,7 +32,7 @@ public abstract partial class TextBase : UIElement
     /// The font used by this element's text.
     /// </summary>
     [Reactive, Dirty(DirtyFlag.Layout), Stylable]
-    protected BMFont font;
+    protected Font font;
     /// <summary>
     /// Specifies how the text in this element is horizontally aligned.
     /// </summary>

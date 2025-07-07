@@ -18,7 +18,7 @@ internal class OpenGLDrawContext : IDrawContext
     private readonly GL gl;
     private UIWindow? window;
     private Vector2 resolution;
-    private ShaderManager shaderManager;
+    private readonly ShaderManager shaderManager;
 
     private Texture2D? activeTexture;
     private int vertPos;
@@ -149,12 +149,12 @@ internal class OpenGLDrawContext : IDrawContext
         Vector4 rectProps = new(bounds.Size, rounding, 0);
 
         var writer = vertBuff.GetBinaryWriter(vertPos);
-        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colour, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.BottomLeft, colour, new(0, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
-        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colour, new(1, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.TopRight, colour, new(1, 0), rectProps));
         vertCount += 6;
         vertPos = writer.Offset;
     }
@@ -174,12 +174,12 @@ internal class OpenGLDrawContext : IDrawContext
         Vector4 rectProps = new(bounds.Size, rounding, 0);
 
         var writer = vertBuff.GetBinaryWriter(vertPos);
-        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colourB, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.BottomLeft, colourB, new(0, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colourA, new(0, 0), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colourD, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colourD, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colourA, new(0, 0), rectProps));
-        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colourC, new(1, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.TopRight, colourC, new(1, 0), rectProps));
         vertCount += 6;
         vertPos = writer.Offset;
     }
@@ -199,12 +199,12 @@ internal class OpenGLDrawContext : IDrawContext
         Vector4 rectProps = new(bounds.Size, rounding, blur);
 
         var writer = vertBuff.GetBinaryWriter(vertPos);
-        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colour, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.BottomLeft, colour, new(0, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
-        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colour, new(1, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.TopRight, colour, new(1, 0), rectProps));
         vertCount += 6;
         vertPos = writer.Offset;
     }
@@ -224,12 +224,12 @@ internal class OpenGLDrawContext : IDrawContext
         Vector4 rectProps = new(bounds.Size, rounding, outlineThickness);
 
         var writer = vertBuff.GetBinaryWriter(vertPos);
-        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colour, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.BottomLeft, colour, new(0, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
-        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colour, new(1, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.TopRight, colour, new(1, 0), rectProps));
         vertCount += 6;
         vertPos = writer.Offset;
     }
@@ -249,12 +249,12 @@ internal class OpenGLDrawContext : IDrawContext
         Vector4 rectProps = new(bounds.Size, rounding, 0);
 
         var writer = vertBuff.GetBinaryWriter(vertPos);
-        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colourB, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.BottomLeft, colourB, new(0, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colourA, new(0, 0), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colourD, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colourD, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colourA, new(0, 0), rectProps));
-        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colourC, new(1, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.TopRight, colourC, new(1, 0), rectProps));
         vertCount += 6;
         vertPos = writer.Offset;
     }
@@ -284,51 +284,86 @@ internal class OpenGLDrawContext : IDrawContext
         var colour = Vector4.One;
 
         var writer = vertBuff.GetBinaryWriter(vertPos);
-        writer.Write(new RectRoundVert(new(bounds.topLeft.X, bounds.bottomRight.Y), colour, new(0, 1), rectProps));
+        writer.Write(new RectRoundVert(bounds.BottomLeft, colour, new(0, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.bottomRight, colour, new(1, 1), rectProps));
         writer.Write(new RectRoundVert(bounds.topLeft, colour, new(0, 0), rectProps));
-        writer.Write(new RectRoundVert(new(bounds.bottomRight.X, bounds.topLeft.Y), colour, new(1, 0), rectProps));
+        writer.Write(new RectRoundVert(bounds.TopRight, colour, new(1, 0), rectProps));
         vertCount += 6;
         vertPos = writer.Offset;
     }
     #endregion
 
     #region Text
-    public void DrawChar(Bounds2D bounds, float size, char c, BMFont font, Vector4 colour)
-    {
-        float fontSize = size / font.Size;
-        DrawCharInternal(bounds.topLeft, fontSize, 0, 0.5f, 1, font.FontTexture?.TextureHandle, font.CharsDict[c], colour);
-    }
-
-    public void DrawText(Bounds2D bounds, float size, string s, BMFont font, Vector4 colour)
+    public void DrawChar(Bounds2D bounds, float size, char c, Font font, Vector4 colour)
     {
         var tex = font.FontTexture?.TextureHandle;
         if (tex == null || !tex.IsLoaded)
             return;
+
+        if (!InitCharRenderingFeatures(tex))
+            return;
+
         var dict = font.CharsDict;
-        //float initialX = bounds.topLeft.X;
+
         float fontSize = size / font.Size;
+        Vector2 fontSizeVec = new(fontSize, fontSize);
+        Vector2 texScale = new(1f / tex.Width, 1f / tex.Height);
+        DrawCharInternal(bounds.topLeft, fontSizeVec, texScale, 0, 0.5f, dict[c], colour);
+    }
+
+    public void DrawText(Bounds2D bounds, float size, string s, Font font, Vector4 colour)
+    {
+        var tex = font.FontTexture?.TextureHandle;
+        if (tex == null || !tex.IsLoaded)
+            return;
+
+        if (!InitCharRenderingFeatures(tex))
+            return;
+
+        var dict = font.CharsDict;
+
+        float fontSize = size / font.Size;
+        Vector2 fontSizeVec = new(fontSize, fontSize);
+        Vector2 texScale = new(1f / tex.Width, 1f / tex.Height);
+        char lastChar = default;
         foreach (var c in s)
         {
-            var cDef = dict[c];
+            int cp = c;
+            if (char.IsHighSurrogate(c))
+            {
+                lastChar = c;
+                continue;
+            }
+            else if (char.IsLowSurrogate(c))
+            {
+                cp = char.ConvertToUtf32(lastChar, c);
+            }
+            var cDef = dict[cp];
             if (bounds.topLeft.X /*+ cDef.xAdvance * fontSize*/ > bounds.bottomRight.X)
                 break;
-            float adv = DrawCharInternal(in bounds.topLeft, fontSize, 0, 0.5f, 1, tex, in cDef, in colour);
-            bounds.topLeft.X += adv;
+            var adv = DrawCharInternal(in bounds.topLeft, fontSizeVec, texScale, 0, 0.5f, in cDef, in colour);
+            bounds.topLeft += adv;
         }
     }
 
-    public void DrawText(Bounds2D bounds, ReadOnlySpan<char> s, BMFont font, float size, Vector4 colour,
+    public void DrawText(Bounds2D bounds, ReadOnlySpan<char> s, Font font, float size, Vector4 colour,
         float wordSpacing = 0, float charSpacing = 0, float skew = 0, float weight = 0.5F, float width = 1)
     {
         var tex = font.FontTexture?.TextureHandle;
         if (tex == null || !tex.IsLoaded)
             return;
+
+        if (!InitCharRenderingFeatures(tex))
+            return;
+
         var dict = font.CharsDict;
-        //float initialX = bounds.topLeft.X;
+
+        char lastChar = default;
         float fontSize = size / font.Size;
+        Vector2 fontSizeVec = new(fontSize * width, fontSize);
+        Vector2 texScale = new(1f / tex.Width, 1f / tex.Height);
         foreach (var c in s)
         {
             //if (char.IsWhiteSpace(c))
@@ -339,22 +374,32 @@ internal class OpenGLDrawContext : IDrawContext
                 continue;
             }
 
-            var cDef = dict[c];
+            int cp = c;
+            if (char.IsHighSurrogate(c))
+            {
+                lastChar = c;
+                continue;
+            }
+            else if (char.IsLowSurrogate(c))
+            {
+                cp = char.ConvertToUtf32(lastChar, c);
+            }
+            var cDef = dict[cp];
             if (bounds.topLeft.X > bounds.bottomRight.X)
                 break;
-            float adv = DrawCharInternal(in bounds.topLeft, fontSize, skew, weight, width, tex, in cDef, in colour);
-            bounds.topLeft.X += adv + charSpacing;
+            var adv = DrawCharInternal(in bounds.topLeft, fontSizeVec, texScale, skew, weight, in cDef, in colour);
+            adv.X += charSpacing;
+            bounds.topLeft += adv;
         }
     }
 
-    private float DrawCharInternal(in Vector2 pos, float size, float skew, float weight, float width, ITextureHandle? texture, in BMFontChar c, in Vector4 colour)
+    private bool InitCharRenderingFeatures(ITextureHandle texture)
     {
-        // TODO: Implement text rendering skew
         if (texture is not Texture2D tex)
             throw new NotSupportedException("Attempted to call DrawTexture with an incompatible texture object!");
 
         if (tex.Width == 0 || tex.Height == 0)
-            return 0f;
+            return false;
 
         ShaderFeature shaderFeatures = ShaderFeature.Text | ShaderFeature.Alpha;
         if (!shaderManager.IsShaderActive(shaderFeatures))
@@ -363,35 +408,37 @@ internal class OpenGLDrawContext : IDrawContext
             shaderManager.SetActiveShader(gl, shaderFeatures);
         }
 
-        if (CheckSpace<CharVert>(6))
-            FlushBatch();
-
         if (activeTexture != tex)
         {
             FlushBatch();
             activeTexture = tex;
         }
 
-        Vector2 fontSizeVec = new(size * width, size);
-        Vector2 tl = c.offset * fontSizeVec;
-        Vector2 br = (c.offset + c.size) * fontSizeVec;
-        tl += pos;
-        br += pos;
-        Vector2 texScale = new(1f / activeTexture.Width, 1f / activeTexture.Height);
-        Vector2 uv_tl = c.pos * texScale;
-        Vector2 uv_br = (c.pos + c.size) * texScale;
+        return true;
+    }
+
+    private Vector2 DrawCharInternal(in Vector2 pos, in Vector2 size, in Vector2 pixelSize, float skew, float weight, in FontGlyph c, in Vector4 colour)
+    {
+        // TODO: Implement text rendering skew
+        if (CheckSpace<CharVert>(6))
+            FlushBatch();
+
+        Bounds2D rect = c.rectBounds;
+        rect *= size;
+        rect += pos;
+        Bounds2D uv = c.textureBounds * pixelSize;
 
         var writer = vertBuff.GetBinaryWriter(vertPos);
-        writer.Write(new CharVert(new(tl.X, br.Y), colour, new(uv_tl.X, uv_br.Y, weight)));
-        writer.Write(new CharVert(tl, colour, new(uv_tl, weight)));
-        writer.Write(new CharVert(br, colour, new(uv_br, weight)));
-        writer.Write(new CharVert(br, colour, new(uv_br, weight)));
-        writer.Write(new CharVert(tl, colour, new(uv_tl, weight)));
-        writer.Write(new CharVert(new(br.X, tl.Y), colour, new(uv_br.X, uv_tl.Y, weight)));
+        writer.Write(new CharVert(rect.BottomLeft, colour, new(uv.BottomLeft, weight)));
+        writer.Write(new CharVert(rect.topLeft, colour, new(uv.topLeft, weight)));
+        writer.Write(new CharVert(rect.bottomRight, colour, new(uv.bottomRight, weight)));
+        writer.Write(new CharVert(rect.bottomRight, colour, new(uv.bottomRight, weight)));
+        writer.Write(new CharVert(rect.topLeft, colour, new(uv.topLeft, weight)));
+        writer.Write(new CharVert(rect.TopRight, colour, new(uv.TopRight, weight)));
         vertCount += 6;
         vertPos = writer.Offset;
 
-        return c.xAdvance * fontSizeVec.X;
+        return c.advance * size;
     }
     #endregion
 

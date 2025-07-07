@@ -21,33 +21,6 @@ namespace ArgonUI.Drawing;
 /// </summary>
 public class BMFont : Font
 {
-    private readonly List<BMFontPage> pages = [];
-    private readonly List<BMFontChar> chars = [];
-    private readonly List<BMFontKerning> kernings = [];
-    private readonly ReadOnlyCollection<BMFontPage> pagesRO;
-    private readonly ReadOnlyCollection<BMFontChar> charsRO;
-    private readonly ReadOnlyCollection<BMFontKerning> kerningsRO;
-    private FrozenDictionary<char, FrozenDictionary<char, float>> kerningsDictFrozen;
-    private FrozenDictionary<char, BMFontChar> charsDictFrozen;
-    private readonly Dictionary<float, BMFont> prescaledAlternatives = [];
-
-    /// <summary>
-    /// This is the distance in pixels between each line of text.
-    /// </summary>
-    public int LineHeight { get; private set; }
-    /// <summary>
-    /// The number of pixels from the absolute top of the line to the base of the characters.
-    /// </summary>
-    public int Base { get; private set; }
-    /// <summary>
-    /// The width of the texture, normally used to scale the x pos of the character image.
-    /// </summary>
-    public int ScaleW { get; private set; }
-    /// <summary>
-    /// The height of the texture, normally used to scale the y pos of the character image.
-    /// </summary>
-    public int ScaleH { get; private set; }
-    //public int Pages { get; private set; }
     /// <summary>
     /// Set to true if the monochrome characters have been packed into each of the texture 
     /// channels. In this case AlphaChannel describes what is stored in each channel.
@@ -70,22 +43,14 @@ public class BMFont : Font
     /// </summary>
     public BMFontChannel BlueChannel { get; private set; }
 
-    //public string Face { get; private set; }
-    //public int Size { get; private set; }
-    //public bool Bold { get; private set; }
-    //public bool Italic { get; private set; }
     /// <summary>
-    /// The name of the OEM charset used (when not unicode).
+    /// The spacing for each character (horizontal, vertical).
     /// </summary>
-    public string? Charset { get; private set; }
-    /// <summary>
-    /// Set to true if it is the unicode charset.
-    /// </summary>
-    public bool Unicode { get; private set; }
+    public Vector2 Spacing { get; protected set; }
     /// <summary>
     /// The font height stretch in 0-1. 100% means no stretch.
     /// </summary>
-    public float StretchH { get; private set; }
+    public float StretchH { get; protected set; }
     /// <summary>
     /// Set to true if smoothing was turned on.
     /// </summary>
@@ -99,117 +64,13 @@ public class BMFont : Font
     /// </summary>
     public Vector4 Padding { get; private set; }
     /// <summary>
-    /// The spacing for each character (horizontal, vertical).
-    /// </summary>
-    public Vector2 Spacing { get; private set; }
-    /// <summary>
     /// The outline thickness for the characters.
     /// </summary>
     public float Outline { get; private set; }
-
-    /// <summary>
-    /// The type of signed-distance field (if any) contained in the font's bitmap.
-    /// </summary>
-    public BMFontSDFType SDFType { get; private set; }
     /// <summary>
     /// The distance range of the signed-distance field (if used) in pixels.
     /// </summary>
     public float SDFDistanceRange { get; private set; }
-
-    public ReadOnlyCollection<BMFontPage> Pages => pagesRO;
-    public ReadOnlyCollection<BMFontChar> Chars => charsRO;
-    public ReadOnlyCollection<BMFontKerning> Kernings => kerningsRO;
-    public FrozenDictionary<char, FrozenDictionary<char, float>> KerningsDict => kerningsDictFrozen;
-    public FrozenDictionary<char, BMFontChar> CharsDict => charsDictFrozen;
-
-    public BMFont()
-    {
-        pagesRO = new(pages);
-        charsRO = new(chars);
-        kerningsRO = new(kernings);
-        kerningsDictFrozen = FrozenDictionary<char, FrozenDictionary<char, float>>.Empty;
-        charsDictFrozen = FrozenDictionary<char, BMFontChar>.Empty;
-    }
-
-    /// <summary>
-    /// Trys to get a <see cref="BMFont"/> instance of this font optimised for rendering at the 
-    /// given font size.
-    /// </summary>
-    /// <param name="fontSize">The font size to target (integer values are recommended)</param>
-    /// <returns>A <see cref="BMFont"/> instance for that font size or <see langword="null"/> if one doesn't exist.</returns>
-    public BMFont? GetScaledFont(float fontSize)
-    {
-        return null;
-    }
-
-    /// <summary>
-    /// Measures the approximate amount of space the font will require on screen in pixels.
-    /// </summary>
-    /// <param name="str">The string to measure.</param>
-    /// <param name="size">The font size.</param>
-    /// <param name="width">The amount of horizontal stretch applied to this font.</param>
-    /// <returns>A vector of the measured width and height.</returns>
-    public Bounds2D Measure(string? str, float size, float width = 1)
-    {
-        if (string.IsNullOrEmpty(str))
-            return Bounds2D.Zero;
-
-        /*
-        From the text rendering code: 
-            float size_x = size * width;
-            float x0 = pos.X + c.xOffset * size_x;
-            float x1 = pos.X + (c.xOffset + c.width) * size_x;
-            float y0 = pos.Y + c.yOffset * size;
-            float y1 = pos.Y + (c.yOffset + c.height) * size;
-            advance = c.xAdvance * size_x;
-         */
-
-        Bounds2D measure = Bounds2D.Zero;
-        float fontSize = size / Size;
-        float sizeX = fontSize * width;
-        Vector2 fontSizeVec = new(sizeX, fontSize);
-        float xPos = 0;
-        bool first = true;
-        foreach (char c in str!)
-        {
-            var cDef = charsDictFrozen[c];
-
-            Vector2 tl = cDef.offset * fontSizeVec;
-            Vector2 br = (cDef.offset + cDef.size) * fontSizeVec;
-            tl.X += xPos;
-            br.X += xPos;
-            xPos += cDef.xAdvance * sizeX;
-
-            if (first)
-            {
-                measure = new(tl, br);
-                first = false;
-            }
-            else
-            {
-                measure = measure.Union(new(tl, br));
-            }
-        }
-        return measure;
-    }
-
-    /// <summary>
-    /// Measures the approximate amount of space the font will require on screen in pixels.
-    /// </summary>
-    /// <param name="c">The character to measure.</param>
-    /// <param name="size">The font size.</param>
-    /// <param name="width">The amount of horizontal stretch applied to this font.</param>
-    /// <returns>A vector of the measured width and height.</returns>
-    public Bounds2D Measure(char c, float size, float width = 1)
-    {
-        Vector2 measure = Vector2.Zero;
-        float fontSize = size / Size;
-        Vector2 fontSizeVec = new(fontSize * width, fontSize);
-        var cDef = charsDictFrozen[c];
-        Vector2 tl = cDef.offset * fontSizeVec;
-        Vector2 br = (cDef.offset + cDef.size) * fontSizeVec;
-        return new(tl, br);
-    }
 
     #region Loading
     /// <summary>
@@ -265,13 +126,13 @@ public class BMFont : Font
                             ReadAttributes(reader, res.ReadInfo);
                             break;
                         case "page":
-                            res.pages.Add(new(reader));
+                            res.pages.Add(new BMFontPage(reader));
                             break;
                         case "char":
-                            res.chars.Add(new(reader));
+                            res.chars.Add(new BMFontChar(reader).ToGlyph());
                             break;
                         case "kerning":
-                            res.kernings.Add(new(reader));
+                            res.kernings.Add(new BMFontKerning(reader).ToKerning());
                             break;
                         case "distanceField":
                             ReadAttributes(reader, res.ReadDistanceField);
@@ -281,8 +142,8 @@ public class BMFont : Font
             }
         }
 
-        res.BuildKerningsDict();
         res.BuildCharsDict();
+        res.BuildKerningsDict();
 
         return res;
     }
@@ -400,50 +261,15 @@ public class BMFont : Font
             case "fieldType":
                 SDFType = reader.Value switch
                 {
-                    "msdf" => BMFontSDFType.MSDF,
-                    "sdf" => BMFontSDFType.SDF,
-                    _ => BMFontSDFType.None,
+                    "msdf" => FontSDFType.MSDF,
+                    "sdf" => FontSDFType.SDF,
+                    _ => FontSDFType.None,
                 };
                 break;
             case "distanceRange":
                 SDFDistanceRange = float.Parse(reader.Value);
                 break;
         }
-    }
-
-    private void BuildKerningsDict()
-    {
-        // Temp lookup from id to char
-        Dictionary<int, char> charsDict = [];
-        foreach (var ch in chars)
-            charsDict.TryAdd(ch.id, ch.character);
-
-        Dictionary<char, Dictionary<char, float>> kerns = [];
-        try
-        {
-            foreach (var kern in kernings)
-            {
-                var charKerns = kerns.GetOrAdd(charsDict[kern.first], () => []);
-                charKerns.TryAdd(charsDict[kern.second], kern.amount);
-            }
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidDataException($"Couldn't parse kernings for font '{Name}'.", ex);
-        }
-
-        kerningsDictFrozen = kerns.Select(x =>
-        new KeyValuePair<char, FrozenDictionary<char, float>>(x.Key, x.Value.ToFrozenDictionary()))
-            .ToFrozenDictionary();
-    }
-
-    private void BuildCharsDict()
-    {
-        Dictionary<char, BMFontChar> charsDict = [];
-        foreach (var ch in chars)
-            charsDict.TryAdd(ch.character, ch);
-
-        charsDictFrozen = charsDict.ToFrozenDictionary();
     }
     #endregion
 }
@@ -457,17 +283,8 @@ public enum BMFontChannel
     One
 }
 
-public class BMFontPage
+public class BMFontPage : FontPage
 {
-    /// <summary>
-    /// The page ID.
-    /// </summary>
-    public int ID { get; private set; }
-    /// <summary>
-    /// The texture file name.
-    /// </summary>
-    public string? TextureFile { get; private set; }
-
     public BMFontPage() { }
 
     public BMFontPage(XmlReader reader)
@@ -502,6 +319,7 @@ public struct BMFontChar
     /// </summary>
     public int id;
     //public int index;
+    // TODO: For now we're effectively limiting ourselves to the Unicode BMP, to support emoji and more complex characters this field needs to be 32bit.
     /// <summary>
     /// The codepoint this char represents.
     /// </summary>
@@ -610,6 +428,18 @@ public struct BMFontChar
 #endif
         }
     }
+
+    public readonly FontGlyph ToGlyph()
+    {
+        FontGlyph res = default;
+        res.advance.X = xAdvance;
+        res.character = character;
+        res.codepoint = id; // Not sure if this is always valid, but it certainly seems to be the case...
+        res.page = page;
+        res.rectBounds = new(offset, offset + size); 
+        res.textureBounds = new(pos, pos + size);
+        return res;
+    }
 }
 
 public struct BMFontKerning
@@ -655,6 +485,15 @@ public struct BMFontKerning
             }
         } while (reader.MoveToNextAttribute());
     }
+
+    public readonly FontKerning ToKerning()
+    {
+        FontKerning res = default;
+        res.first = first;
+        res.second = second;
+        res.amount.X = amount;
+        return res;
+    }
 }
 
 [Flags]
@@ -666,11 +505,4 @@ public enum BMFontCharChannel
     Red = 1 << 2,
     Alpha = 1 << 3,
     All = Red | Green | Blue | Alpha
-}
-
-public enum BMFontSDFType
-{
-    None,
-    SDF,
-    MSDF
 }

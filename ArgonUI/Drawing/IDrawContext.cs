@@ -150,7 +150,7 @@ public interface IDrawContext : IDisposable
     /// <param name="weight">The weight to render the characters with, where 0.5 
     /// represents the font's native weight. Values close to 0 or 1 are likely to show visual artifacts.</param>
     /// <param name="width">A width scale factor to stretch the font. A value of 1 represents no stretching.</param>
-    public void DrawText(Bounds2D bounds, ReadOnlySpan<char> s, BMFont font, float size, Vector4 colour,
+    public void DrawText(Bounds2D bounds, ReadOnlySpan<char> s, Font font, float size, Vector4 colour,
         float wordSpacing = 0, float charSpacing = 0, float skew = 0, float weight = 0.5f, float width = 1);
     /// <summary>
     /// Draws a single character within the specified bounds.
@@ -160,7 +160,7 @@ public interface IDrawContext : IDisposable
     /// <param name="c">The char to draw.</param>
     /// <param name="font">The font to draw the char with.</param>
     /// <param name="colour">The colour to draw the char in.</param>
-    public void DrawChar(Bounds2D bounds, float size, char c, BMFont font, Vector4 colour);
+    public void DrawChar(Bounds2D bounds, float size, char c, Font font, Vector4 colour);
 
     /// <summary>
     /// Draw calls are expected to be automatically batched by the implementor to improve performance.
