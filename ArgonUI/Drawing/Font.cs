@@ -25,7 +25,6 @@ public abstract class Font
     protected readonly ReadOnlyCollection<FontKerning> kerningsRO;
     protected readonly List<FontPage> pages = [];
     protected readonly ReadOnlyCollection<FontPage> pagesRO;
-    protected readonly Dictionary<float, Font> prescaledAlternatives = [];
     protected FrozenDictionary<int, FontGlyph> charsDictFrozen;
     protected FrozenDictionary<int, FrozenDictionary<int, Vector2>> kerningsDictFrozen;
 
@@ -44,7 +43,7 @@ public abstract class Font
     /// <summary>
     /// Gets the native size of the font when the texture is used at 1:1 scale.
     /// </summary>
-    public int Size { get; protected set; }
+    public float Size { get; protected set; }
     /// <summary>
     /// The number of pixels from the absolute top of the line to the base of the characters.
     /// </summary>
@@ -58,14 +57,6 @@ public abstract class Font
     /// </summary>
     public int LineHeight { get; protected set; }
     /// <summary>
-    /// The height of the texture, normally used to scale the y pos of the character image.
-    /// </summary>
-    public int ScaleH { get; protected set; }
-    /// <summary>
-    /// The width of the texture, normally used to scale the x pos of the character image.
-    /// </summary>
-    public int ScaleW { get; protected set; }
-    /// <summary>
     /// The type of signed-distance field (if any) contained in the font's bitmap.
     /// </summary>
     public FontSDFType SDFType { get; protected set; }
@@ -78,7 +69,8 @@ public abstract class Font
     public FrozenDictionary<int, FontGlyph> CharsDict => charsDictFrozen;
     public ReadOnlyCollection<FontKerning> Kernings => kerningsRO;
     public FrozenDictionary<int, FrozenDictionary<int, Vector2>> KerningsDict => kerningsDictFrozen;
-    public ReadOnlyCollection<FontPage> Pages => pagesRO;
+    //TODO: Not supported for now.
+    protected ReadOnlyCollection<FontPage> Pages => pagesRO;
 
     public Font()
     {
@@ -226,7 +218,7 @@ public class FontPage
     /// <summary>
     /// The texture file name.
     /// </summary>
-    public string? TextureFile { get; protected set; }
+    public ArgonTexture? FontTexture { get; protected set; }
 
     public FontPage() { }
 }

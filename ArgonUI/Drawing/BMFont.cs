@@ -44,6 +44,14 @@ public class BMFont : Font
     public BMFontChannel BlueChannel { get; private set; }
 
     /// <summary>
+    /// The height of the texture, normally used to scale the y pos of the character image.
+    /// </summary>
+    public int ScaleH { get; protected set; }
+    /// <summary>
+    /// The width of the texture, normally used to scale the x pos of the character image.
+    /// </summary>
+    public int ScaleW { get; protected set; }
+    /// <summary>
     /// The spacing for each character (horizontal, vertical).
     /// </summary>
     public Vector2 Spacing { get; protected set; }
@@ -99,7 +107,7 @@ public class BMFont : Font
 
         if (bmf.pages.Count >= 1)
         {
-            string fileName = bmf.pages[0].TextureFile ?? throw new FileNotFoundException($"Attempted to load undefined texture in font '{bmf.Name}'");
+            string fileName = ((BMFontPage)bmf.pages[0]).FontTextureName ?? throw new FileNotFoundException($"Attempted to load undefined texture in font '{bmf.Name}'");
             bmf.FontTexture = ArgonTexture.CreateFromFile(fileName, containingAssembly);
         }
 
@@ -285,6 +293,8 @@ public enum BMFontChannel
 
 public class BMFontPage : FontPage
 {
+    public string? FontTextureName { get; protected set; }
+
     public BMFontPage() { }
 
     public BMFontPage(XmlReader reader)
@@ -305,7 +315,7 @@ public class BMFontPage : FontPage
                     ID = int.Parse(reader.Value);
                     break;
                 case "file":
-                    TextureFile = reader.Value;
+                    FontTextureName = reader.Value;
                     break;
             }
         } while (reader.MoveToNextAttribute());

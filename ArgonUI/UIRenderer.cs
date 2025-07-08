@@ -15,7 +15,7 @@ internal class UIRenderer
     private IDrawContext? context;
     //private readonly DrawCommandGraph drawCommandGraph;
     //private readonly List<Action<IDrawContext>> drawCommands;
-    private readonly SortedRefList<TemporaryList<Action<IDrawContext>>> drawCommands;
+    private readonly SortedRefList<int, TemporaryList<Action<IDrawContext>>> drawCommands;
     private Bounds2D? drawBounds;
 
     // These are used to prevent race conditions
